@@ -1,3 +1,4 @@
+// وظيفة الملف: تنفيذ أو إعداد offline service ضمن هذا الجزء من المشروع.
 import 'dart:async';
 import 'dart:io';
 import 'package:maplibre_gl/maplibre_gl.dart';

@@ -1,3 +1,4 @@
+// وظيفة الملف: تنفيذ أو إعداد intaleq map controller ضمن هذا الجزء من المشروع.
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
@@ -47,7 +48,11 @@ class IntaleqMapController {
   /// [setUserMarker]. Reset to null on style reload (native symbol is
   /// destroyed) so the next update re-adds it.
   mgl.Symbol? _userSymbol;
+  Marker? _pendingUserMarker;
   bool _userSymbolBusy = false;
+  bool _isStyleLoaded = false;
+  CameraUpdate? _pendingCameraUpdate;
+  bool _pendingCameraAnimated = true;
 
   // ── Factory / init ─────────────────────────────────────────
 
@@ -60,8 +65,14 @@ class IntaleqMapController {
     return ctrl;
   }
 
-  /// Pre-loads built-in Intaleq marker images into the map style.
+  /// Pre-loads built-in marker images into the map style.
   Future<void> _registerDefaultImages() async {
+    try {
+      final bytes = await rootBundle
+          .load('packages/siro_map/assets/markers/default.png');
+      await _raw.addImage('intaleq-marker-default', bytes.buffer.asUint8List());
+      return;
+    } catch (_) {}
     try {
       final bytes = await rootBundle
           .load('packages/intaleq_maps/assets/markers/default.png');
@@ -75,6 +86,7 @@ class IntaleqMapController {
   /// We clear internal registries because native objects (Symbols, Lines)
   /// are destroyed on style reload.
   Future<void> onStyleLoaded() async {
+    _isStyleLoaded = true;
     _symbols.clear();
     _symbolToMarker.clear();
     _lines.clear();
@@ -86,6 +98,25 @@ class IntaleqMapController {
     // stale handle so the next [setUserMarker] call re-creates it.
     _userSymbol = null;
     await _registerDefaultImages();
+    await applyMarkerVisibilityDefaults();
+
+    // Safely execute camera updates queued before style finished rendering
+    if (_pendingCameraUpdate != null) {
+      final pending = _pendingCameraUpdate!;
+      final animated = _pendingCameraAnimated;
+      _pendingCameraUpdate = null;
+      print("🎬 [IntaleqController] Style loaded! Flushing queued camera update (animated=$animated)...");
+      try {
+        if (animated) {
+          await _raw.animateCamera(pending.toMapLibre());
+        } else {
+          await _raw.moveCamera(pending.toMapLibre());
+        }
+        print("✅ [IntaleqController] Queued camera update executed successfully.");
+      } catch (e) {
+        print("⚠️ [IntaleqController] Queued camera update trapped error: $e");
+      }
+    }
   }
 
   /// Google Maps draws every marker unconditionally, but MapLibre's symbol
@@ -113,18 +144,148 @@ class IntaleqMapController {
 
   // ── Camera  (same API as GoogleMapController) ──────────────
 
-  /// Animates the camera to the given [update].
-  Future<bool?> animateCamera(CameraUpdate update) =>
-      _raw.animateCamera(update.toMapLibre());
+  /// Animates the camera to the given [update]. Safe on iOS before style is loaded.
+  Future<bool?> animateCamera(CameraUpdate update) async {
+    if (!_isStyleLoaded) {
+      print("⏳ [IntaleqController] animateCamera: Style not loaded yet. Queuing camera update safely.");
+      _pendingCameraUpdate = update;
+      _pendingCameraAnimated = true;
+      return null;
+    }
+    try {
+      print("🎬 [IntaleqController] animateCamera: Executing native animation now.");
+      return await _raw.animateCamera(update.toMapLibre());
+    } catch (e) {
+      print("⚠️ [IntaleqController] animateCamera native call error: $e. Re-queuing.");
+      _pendingCameraUpdate = update;
+      _pendingCameraAnimated = true;
+      return null;
+    }
+  }
 
-  /// Instantly moves the camera to the given [update].
-  Future<bool?> moveCamera(CameraUpdate update) =>
-      _raw.moveCamera(update.toMapLibre());
+  /// Instantly moves the camera to the given [update]. Safe on iOS before style is loaded.
+  Future<bool?> moveCamera(CameraUpdate update) async {
+    if (!_isStyleLoaded) {
+      print("⏳ [IntaleqController] moveCamera: Style not loaded yet. Queuing camera update safely.");
+      _pendingCameraUpdate = update;
+      _pendingCameraAnimated = false;
+      return null;
+    }
+    try {
+      print("🎬 [IntaleqController] moveCamera: Executing native move now.");
+      return await _raw.moveCamera(update.toMapLibre());
+    } catch (e) {
+      print("⚠️ [IntaleqController] moveCamera native call error: $e. Re-queuing.");
+      _pendingCameraUpdate = update;
+      _pendingCameraAnimated = false;
+      return null;
+    }
+  }
 
   /// Returns the current [CameraPosition] of the map.
   CameraPosition? get cameraPosition => _raw.cameraPosition != null
       ? CameraPosition.fromMapLibre(_raw.cameraPosition!)
       : null;
+
+  /// Direct access to underlying MapLibreMapController.
+  mgl.MapLibreMapController get raw => _raw;
+
+  /// Sets camera tilt (0.0 to 60.0 degrees) smoothly.
+  Future<void> setTilt(double tilt, {Duration duration = const Duration(milliseconds: 300)}) async {
+    final pos = cameraPosition;
+    if (pos == null) return;
+    await _raw.animateCamera(
+      mgl.CameraUpdate.newCameraPosition(
+        mgl.CameraPosition(
+          target: pos.target,
+          zoom: pos.zoom,
+          bearing: pos.bearing,
+          tilt: tilt.clamp(0.0, 60.0),
+        ),
+      ),
+      duration: duration,
+    );
+  }
+
+  /// Sets camera bearing (0.0 to 360.0 degrees) smoothly.
+  Future<void> setBearing(double bearing, {Duration duration = const Duration(milliseconds: 100)}) async {
+    final pos = cameraPosition;
+    if (pos == null) return;
+    await _raw.animateCamera(
+      mgl.CameraUpdate.newCameraPosition(
+        mgl.CameraPosition(
+          target: pos.target,
+          zoom: pos.zoom,
+          bearing: (bearing % 360.0 + 360.0) % 360.0,
+          tilt: pos.tilt,
+        ),
+      ),
+      duration: duration,
+    );
+  }
+
+  /// Smooth cinematic orbit step by [deltaDegrees].
+  Future<void> orbitStep(double deltaDegrees, {Duration duration = const Duration(milliseconds: 60)}) async {
+    final pos = cameraPosition;
+    if (pos == null) return;
+    final newBearing = (pos.bearing + deltaDegrees) % 360.0;
+    await _raw.animateCamera(
+      mgl.CameraUpdate.newCameraPosition(
+        mgl.CameraPosition(
+          target: pos.target,
+          zoom: pos.zoom,
+          bearing: newBearing,
+          tilt: pos.tilt,
+        ),
+      ),
+      duration: duration,
+    );
+  }
+
+  /// Sets layer visibility in the active style.
+  Future<void> setLayerVisibility(String layerId, bool visible) async {
+    if (!_isStyleLoaded) return;
+    try {
+      await _raw.setLayerVisibility(layerId, visible);
+    } catch (e) {
+      print("⚠️ [IntaleqController] setLayerVisibility error for $layerId: $e");
+    }
+  }
+
+  /// Updates sun lighting and shadows simulation across terrain and 3D buildings.
+  Future<void> updateSunSimulation({
+    required double sunAzimuth,
+    required String shadowColorHex,
+    required String highlightColorHex,
+    required String buildingColorHex,
+    double buildingOpacity = 0.88,
+    double hillshadeExaggeration = 0.75,
+  }) async {
+    if (!_isStyleLoaded) return;
+    try {
+      final hillshadeProps = mgl.HillshadeLayerProperties(
+        hillshadeIlluminationDirection: sunAzimuth % 360.0,
+        hillshadeShadowColor: shadowColorHex,
+        hillshadeHighlightColor: highlightColorHex,
+        hillshadeExaggeration: hillshadeExaggeration,
+      );
+      try {
+        await _raw.setLayerProperties('hillshading', hillshadeProps);
+      } catch (_) {}
+      try {
+        await _raw.setLayerProperties('terrain-3d-hillshading', hillshadeProps);
+      } catch (_) {}
+    } catch (_) {}
+
+    try {
+      final buildingProps = mgl.FillExtrusionLayerProperties(
+        fillExtrusionColor: buildingColorHex,
+        fillExtrusionOpacity: buildingOpacity,
+      );
+      await _raw.setLayerProperties('building-3d', buildingProps);
+      await _raw.setLayerProperties('building-3d-osm', buildingProps);
+    } catch (_) {}
+  }
 
   /// Returns the current zoom level.
   Future<double> getZoomLevel() async => _raw.cameraPosition?.zoom ?? 14.0;
@@ -150,23 +311,42 @@ class IntaleqMapController {
   }
 
   /// Adds a single [Marker] to the map and returns its MapLibre handle.
-  Future<mgl.Symbol> addMarker(Marker marker) async {
-    final symbol = await _raw.addSymbol(marker.toSymbolOptions());
-    _symbols[marker.markerId] = symbol;
-    _symbolToMarker[symbol.id] = marker;
+  Future<mgl.Symbol?> addMarker(Marker marker) async {
+    if (!_isStyleLoaded) return null;
+    try {
+      if (_symbols.containsKey(marker.markerId)) {
+        await _updateMarker(marker);
+        return _symbols[marker.markerId];
+      }
+      await _loadBitmapIfNeeded(marker.icon);
+      final symbol = await _raw.addSymbol(marker.toSymbolOptions());
+      _symbols[marker.markerId] = symbol;
+      _symbolToMarker[symbol.id] = marker;
 
-    // Ensure collision defaults apply (symbol layer is created lazily by MapLibre)
-    await applyMarkerVisibilityDefaults();
-
-    return symbol;
+      // Ensure collision defaults apply (symbol layer is created lazily by MapLibre)
+      await applyMarkerVisibilityDefaults();
+      return symbol;
+    } catch (e) {
+      print("⚠️ [IntaleqMapController] addMarker failed for ${marker.markerId.value}: $e");
+      return null;
+    }
   }
 
   /// Updates an existing marker's position / appearance.
   Future<void> _updateMarker(Marker marker) async {
+    if (!_isStyleLoaded) return;
     final symbol = _symbols[marker.markerId];
-    if (symbol == null) return;
-    await _raw.updateSymbol(symbol, marker.toSymbolOptions());
-    _symbolToMarker[symbol.id] = marker;
+    if (symbol == null) {
+      await addMarker(marker);
+      return;
+    }
+    try {
+      await _loadBitmapIfNeeded(marker.icon);
+      await _raw.updateSymbol(symbol, marker.toSymbolOptions());
+      _symbolToMarker[symbol.id] = marker;
+    } catch (e) {
+      print("⚠️ [IntaleqMapController] _updateMarker failed for ${marker.markerId.value}: $e");
+    }
   }
 
   /// Removes a marker by its [MarkerId].
@@ -174,8 +354,16 @@ class IntaleqMapController {
     final symbol = _symbols.remove(id);
     if (symbol == null) return;
     _symbolToMarker.remove(symbol.id);
-    await _raw.removeSymbol(symbol);
+    try {
+      await _raw.removeSymbol(symbol);
+    } catch (_) {}
   }
+
+  /// Removes a marker from the map by its [MarkerId].
+  Future<void> removeMarker(MarkerId id) => _removeMarker(id);
+
+  /// Removes a polyline from the map by its [PolylineId].
+  Future<void> removePolyline(PolylineId id) => _removePolyline(id);
 
   // ── User-location puck (imperative, high-frequency) ────────
 
@@ -192,16 +380,23 @@ class IntaleqMapController {
   /// dropped, and the next tick supplies fresh coordinates). The puck is
   /// re-created automatically after a style reload.
   Future<void> setUserMarker(Marker marker) async {
+    if (!_isStyleLoaded) return;
+    _pendingUserMarker = marker;
     if (_userSymbolBusy) return;
     _userSymbolBusy = true;
     try {
-      await _loadBitmapIfNeeded(marker.icon);
-      final symbol = _userSymbol;
-      if (symbol == null) {
-        _userSymbol = await _raw.addSymbol(marker.toSymbolOptions());
-      } else {
-        await _raw.updateSymbol(symbol, marker.toSymbolOptions());
+      while (_pendingUserMarker != null) {
+        final m = _pendingUserMarker!;
+        _pendingUserMarker = null;
+        await _loadBitmapIfNeeded(m.icon);
+        final symbol = _userSymbol;
+        if (symbol == null) {
+          _userSymbol = await _raw.addSymbol(m.toSymbolOptions());
+        } else {
+          await _raw.updateSymbol(symbol, m.toSymbolOptions());
+        }
       }
+    } catch (_) {
     } finally {
       _userSymbolBusy = false;
     }
@@ -212,68 +407,96 @@ class IntaleqMapController {
     final symbol = _userSymbol;
     if (symbol == null) return;
     _userSymbol = null;
-    await _raw.removeSymbol(symbol);
+    try {
+      await _raw.removeSymbol(symbol);
+    } catch (_) {}
   }
 
   // ── Polylines ──────────────────────────────────────────────
 
-  Future<mgl.Line> addPolyline(Polyline polyline) async {
-    final line = await _raw.addLine(polyline.toLineOptions());
-    _lines[polyline.polylineId] = line;
-    _lineToPolyline[line.id] = polyline;
-    return line;
+  Future<mgl.Line?> addPolyline(Polyline polyline) async {
+    if (!_isStyleLoaded) return null;
+    try {
+      final line = await _raw.addLine(polyline.toLineOptions());
+      _lines[polyline.polylineId] = line;
+      _lineToPolyline[line.id] = polyline;
+      return line;
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _updatePolyline(Polyline polyline) async {
+    if (!_isStyleLoaded) return;
     final line = _lines[polyline.polylineId];
     if (line == null) return;
-    await _raw.updateLine(line, polyline.toLineOptions());
-    _lineToPolyline[line.id] = polyline;
+    try {
+      await _raw.updateLine(line, polyline.toLineOptions());
+      _lineToPolyline[line.id] = polyline;
+    } catch (_) {}
   }
 
   Future<void> _removePolyline(PolylineId id) async {
     final line = _lines.remove(id);
     if (line == null) return;
     _lineToPolyline.remove(line.id);
-    await _raw.removeLine(line);
+    try {
+      await _raw.removeLine(line);
+    } catch (_) {}
   }
 
   // ── Circles ────────────────────────────────────────────────
 
   Future<void> addCircle(Circle circle) async {
-    final c = await _raw.addCircle(circle.toCircleOptions());
-    _circles[circle.circleId] = c;
+    if (!_isStyleLoaded) return;
+    try {
+      final c = await _raw.addCircle(circle.toCircleOptions());
+      _circles[circle.circleId] = c;
+    } catch (_) {}
   }
 
   Future<void> _updateCircle(Circle circle) async {
+    if (!_isStyleLoaded) return;
     final c = _circles[circle.circleId];
     if (c == null) return;
-    await _raw.updateCircle(c, circle.toCircleOptions());
+    try {
+      await _raw.updateCircle(c, circle.toCircleOptions());
+    } catch (_) {}
   }
 
   Future<void> _removeCircle(CircleId id) async {
     final c = _circles.remove(id);
     if (c == null) return;
-    await _raw.removeCircle(c);
+    try {
+      await _raw.removeCircle(c);
+    } catch (_) {}
   }
 
   // ── Polygons ───────────────────────────────────────────────
 
   Future<void> addPolygon(Polygon polygon) async {
-    final fill = await _raw.addFill(polygon.toFillOptions());
-    _fills[polygon.polygonId] = fill;
+    if (!_isStyleLoaded) return;
+    try {
+      final fill = await _raw.addFill(polygon.toFillOptions());
+      _fills[polygon.polygonId] = fill;
+    } catch (_) {}
   }
 
   Future<void> _updatePolygon(Polygon polygon) async {
+    if (!_isStyleLoaded) return;
     final fill = _fills[polygon.polygonId];
     if (fill == null) return;
-    await _raw.updateFill(fill, polygon.toFillOptions());
+    try {
+      await _raw.updateFill(fill, polygon.toFillOptions());
+    } catch (_) {}
   }
 
   Future<void> _removePolygon(PolygonId id) async {
     final fill = _fills.remove(id);
     if (fill == null) return;
-    await _raw.removeFill(fill);
+    try {
+      await _raw.removeFill(fill);
+    } catch (_) {}
   }
 
   // ── Tap routing ────────────────────────────────────────────
@@ -294,6 +517,7 @@ class IntaleqMapController {
     Set<Marker> oldSet,
     Set<Marker> newSet,
   ) async {
+    if (!_isStyleLoaded) return;
     final oldMap = {for (final m in oldSet) m.markerId: m};
     final newMap = {for (final m in newSet) m.markerId: m};
 
@@ -316,6 +540,7 @@ class IntaleqMapController {
     Set<Polyline> oldSet,
     Set<Polyline> newSet,
   ) async {
+    if (!_isStyleLoaded) return;
     final oldMap = {for (final p in oldSet) p.polylineId: p};
     final newMap = {for (final p in newSet) p.polylineId: p};
 
@@ -335,6 +560,7 @@ class IntaleqMapController {
     Set<Circle> oldSet,
     Set<Circle> newSet,
   ) async {
+    if (!_isStyleLoaded) return;
     final oldMap = {for (final c in oldSet) c.circleId: c};
     final newMap = {for (final c in newSet) c.circleId: c};
 
@@ -354,6 +580,7 @@ class IntaleqMapController {
     Set<Polygon> oldSet,
     Set<Polygon> newSet,
   ) async {
+    if (!_isStyleLoaded) return;
     final oldMap = {for (final p in oldSet) p.polygonId: p};
     final newMap = {for (final p in newSet) p.polygonId: p};
 
@@ -484,15 +711,25 @@ class IntaleqMapController {
     if (bitmap.bytes != null) {
       await _raw.addImage(id, bitmap.bytes!);
       _loadedImages.add(id);
+      print("🖼️ [IntaleqMapController] Registered custom marker bitmap from bytes: $id");
     } else if (bitmap.assetName != null) {
       try {
         final data = await rootBundle.load(bitmap.assetName!);
         await _raw.addImage(id, data.buffer.asUint8List());
         _loadedImages.add(id);
-      } catch (_) {
-        // Asset not found — marker will fall back to default.
+        print("🖼️ [IntaleqMapController] Registered custom marker asset: ${bitmap.assetName} as $id");
+      } catch (e) {
+        print("⚠️ [IntaleqMapController] Failed to load asset image ${bitmap.assetName}: $e");
       }
     }
     // Style-registered images need no loading.
   }
 }
+
+/// Primary brand controller for Siro Maps SDK.
+typedef SiroMapController = IntaleqMapController;
+
+/// Backward compatibility alias for developers migrating from `google_maps_flutter`.
+typedef GoogleMapController = IntaleqMapController;
+
+

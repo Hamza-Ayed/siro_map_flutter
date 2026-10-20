@@ -1,3 +1,4 @@
+// وظيفة الملف: تنفيذ أو إعداد polyline utils ضمن هذا الجزء من المشروع.
 import 'dart:math' show sin, cos, sqrt, atan2, pi;
 import 'package:maplibre_gl/maplibre_gl.dart' show LatLng;
 

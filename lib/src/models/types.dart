@@ -1,3 +1,4 @@
+// وظيفة الملف: تنفيذ أو إعداد types ضمن هذا الجزء من المشروع.
 import 'dart:ui';
 import 'package:maplibre_gl/maplibre_gl.dart' as mgl;
 import '../intaleq_map_controller.dart';
@@ -19,7 +20,14 @@ enum IntaleqMapType {
 
   /// Satellite imagery with road labels overlaid.
   satellite,
+
+  /// True 3D Topographic and Terrain Elevation style with DEM displacement.
+  terrain,
 }
+
+/// Backward compatibility alias for developers migrating from `google_maps_flutter`.
+typedef MapType = IntaleqMapType;
+
 
 // ─────────────────────────────────────────────────────────────
 // MinMaxZoomPreference  (identical to google_maps_flutter)

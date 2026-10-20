@@ -1,8 +1,10 @@
+// وظيفة الملف: تنفيذ أو إعداد intaleq map widget ضمن هذا الجزء من المشروع.
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:maplibre_gl/maplibre_gl.dart' as mgl;
 import 'intaleq_map_controller.dart';
-import 'styles.dart';
 import 'offline_service.dart';
 import 'models/geometry.dart';
 import 'models/types.dart';
@@ -58,7 +60,7 @@ class IntaleqMap extends StatefulWidget {
     this.scrollGesturesEnabled = true,
     this.tiltGesturesEnabled = true,
     this.zoomGesturesEnabled = true,
-    this.autoCache = true,
+    this.autoCache = false,
     this.minMaxZoomPreference = MinMaxZoomPreference.unbounded,
     this.cameraTargetBounds = CameraTargetBounds.unbounded,
   });
@@ -143,6 +145,7 @@ class _IntaleqMapState extends State<IntaleqMap> {
   bool _isCameraMoving = false;
   String? _styleString;
   bool _isLoadingStyle = true;
+  bool _isNativeStyleLoaded = false;
 
   @override
   void initState() {
@@ -155,13 +158,94 @@ class _IntaleqMapState extends State<IntaleqMap> {
       final url = _resolvedStyleUrl;
       print("🔥 [IntaleqMap] Resolving style: $url");
 
-      if (url.startsWith('asset://')) {
-        final assetPath = url.replaceFirst('asset://', '');
-        _styleString = await rootBundle.loadString(assetPath);
-        print("🔥 [IntaleqMap] Style loaded from asset string: ${assetPath.split('/').last}");
-      } else {
+      if (url.startsWith('{')) {
         _styleString = url;
-        print("🔥 [IntaleqMap] Using remote style URL: $url");
+      } else if (url.startsWith('asset://') || url.startsWith('assets/') || (url.endsWith('.json') && !url.startsWith('http'))) {
+        final assetPath = url.replaceFirst('asset://', '');
+        try {
+          _styleString = await rootBundle.loadString(assetPath);
+          print("🔥 [SiroMap] Style loaded from asset string: ${assetPath.split('/').last}");
+        } catch (_) {
+          try {
+            _styleString = await rootBundle.loadString('packages/siro_map/$assetPath');
+            print("🔥 [SiroMap] Style loaded from package asset: packages/siro_map/$assetPath");
+          } catch (_) {
+            try {
+              _styleString = await rootBundle.loadString('packages/intaleq_maps/$assetPath');
+              print("🔥 [SiroMap] Style loaded from package asset: packages/intaleq_maps/$assetPath");
+            } catch (e) {
+              print("❌ [SiroMap] Asset load failed: $e");
+              _styleString = url;
+            }
+          }
+        }
+      } else if (url.startsWith('file://')) {
+        final filePath = url.replaceFirst('file://', '');
+        final file = File(filePath);
+        if (await file.exists()) {
+          _styleString = await file.readAsString();
+          print("🔥 [IntaleqMap] Style loaded from local file: $filePath");
+        } else {
+          _styleString = url;
+        }
+      } else if (url.startsWith('http://') || url.startsWith('https://')) {
+        // If satellite theme requested, use bundled ESRI Satellite hybrid style directly
+        if (widget.mapType == IntaleqMapType.satellite || url.contains('theme=satellite')) {
+          try {
+            _styleString = await rootBundle.loadString('packages/intaleq_maps/assets/style-satellite.json');
+            print("🛰️ [IntaleqMap] Loaded bundled ESRI Satellite hybrid style successfully");
+            return;
+          } catch (_) {
+            try {
+              _styleString = await rootBundle.loadString('assets/style-satellite.json');
+              print("🛰️ [IntaleqMap] Loaded local ESRI Satellite hybrid style successfully");
+              return;
+            } catch (_) {}
+          }
+        }
+        if (widget.mapType == IntaleqMapType.terrain || url.contains('terrain')) {
+          try {
+            _styleString = await rootBundle.loadString('packages/intaleq_maps/assets/style-3d-terrain.json');
+            print("🏔️ [IntaleqMap] Loaded bundled 3D Terrain style successfully");
+            return;
+          } catch (_) {
+            try {
+              _styleString = await rootBundle.loadString('assets/style-3d-terrain.json');
+              print("🏔️ [IntaleqMap] Loaded local 3D Terrain style successfully");
+              return;
+            } catch (_) {}
+          }
+        }
+        try {
+          final res = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 4));
+          if (res.statusCode == 200 && res.body.trim().startsWith('{')) {
+            _styleString = res.body;
+            print("🔥 [IntaleqMap] Pre-fetched remote style JSON (${res.body.length} bytes)");
+          } else {
+            _styleString = url;
+          }
+        } catch (netErr) {
+          print("⚠️ [IntaleqMap] Direct HTTP fetch failed ($netErr), attempting bundled fallback");
+          try {
+            final fallback = (widget.mapType == IntaleqMapType.satellite || url.contains('theme=satellite'))
+                ? 'packages/intaleq_maps/assets/style-satellite.json'
+                : (widget.mapType == IntaleqMapType.terrain || url.contains('terrain'))
+                    ? 'packages/intaleq_maps/assets/style-3d-terrain.json'
+                    : 'packages/intaleq_maps/assets/style.json';
+            _styleString = await rootBundle.loadString(fallback);
+            print("🔥 [IntaleqMap] Loaded bundled offline fallback style successfully: $fallback");
+          } catch (_) {
+            _styleString = url;
+          }
+        }
+      } else {
+        // Fallback: try rootBundle first
+        try {
+          _styleString = await rootBundle.loadString(url);
+          print("🔥 [IntaleqMap] Style loaded from rootBundle fallback: $url");
+        } catch (_) {
+          _styleString = url;
+        }
       }
     } catch (e) {
       print("❌ [IntaleqMap] Failed to load style: $e");
@@ -179,11 +263,12 @@ class _IntaleqMapState extends State<IntaleqMap> {
 
     if (oldWidget.mapType != widget.mapType ||
         oldWidget.styleUrl != widget.styleUrl) {
+      _isNativeStyleLoaded = false;
       _loadStyle();
     }
 
     final ctrl = _controller;
-    if (ctrl == null) return;
+    if (ctrl == null || !_isNativeStyleLoaded) return;
 
     // Reconcile each overlay set when widget rebuilds.
     ctrl.diffMarkers(oldWidget.markers, widget.markers);
@@ -194,17 +279,18 @@ class _IntaleqMapState extends State<IntaleqMap> {
 
   String get _resolvedStyleUrl {
     if (widget.styleUrl != null) return widget.styleUrl!;
-    // Default to local assets for performance and offline support
+    // Default to local assets for instant loading and 100% offline support (as in Siro Rider)
     return switch (widget.mapType) {
       IntaleqMapType.normal => 'asset://packages/intaleq_maps/assets/style_dark.json',
       IntaleqMapType.light => 'asset://packages/intaleq_maps/assets/style.json',
-      IntaleqMapType.satellite => IntaleqStyles.satellite(widget.apiKey),
+      IntaleqMapType.satellite => 'asset://packages/intaleq_maps/assets/style-satellite.json',
+      IntaleqMapType.terrain => 'asset://packages/intaleq_maps/assets/style-3d-terrain.json',
       IntaleqMapType.none => 'about:blank',
     };
   }
 
   Future<void> _onMapCreated(mgl.MapLibreMapController rawCtrl) async {
-    // Wire up tap routing before handing the controller to the caller.
+    print("🗺️ [IntaleqMapWidget] _onMapCreated: Native MapLibre controller attached.");
     rawCtrl.onSymbolTapped.add(_onSymbolTapped);
     rawCtrl.onLineTapped.add(_onLineTapped);
 
@@ -213,6 +299,7 @@ class _IntaleqMapState extends State<IntaleqMap> {
       apiKey: widget.apiKey,
     );
     _controller = ctrl;
+    print("🗺️ [IntaleqMapWidget] Invoking widget.onMapCreated callback...");
     widget.onMapCreated?.call(ctrl);
   }
 
@@ -222,18 +309,22 @@ class _IntaleqMapState extends State<IntaleqMap> {
   void _onLineTapped(mgl.Line line) => _controller?.onLineTapped(line);
 
   Future<void> _onStyleLoaded() async {
+    print("🎨 [IntaleqMapWidget] _onStyleLoaded: MapLibre native style finished loading.");
+    _isNativeStyleLoaded = true;
     final ctrl = _controller;
-    if (ctrl == null) return;
+    if (ctrl == null) {
+      print("⚠️ [IntaleqMapWidget] _onStyleLoaded: _controller is null!");
+      return;
+    }
 
     await ctrl.onStyleLoaded();
+    print("🎨 [IntaleqMapWidget] Invoking widget.onStyleLoaded callback...");
     final callbackResult = widget.onStyleLoaded?.call();
     if (callbackResult is Future) {
       await callbackResult;
     }
 
-    // Re-render everything from the current declarative sets.
-    // This ensures overlays persist across style changes (Dark/Light mode)
-    // and during certain zoom/camera events that trigger style reloads.
+    print("📌 [IntaleqMapWidget] Re-rendering overlays: markers=${widget.markers.length}, polylines=${widget.polylines.length}, circles=${widget.circles.length}, polygons=${widget.polygons.length}");
     for (final m in widget.markers) await ctrl.addMarker(m);
     for (final p in widget.polylines) await ctrl.addPolyline(p);
     for (final c in widget.circles) await ctrl.addCircle(c);
@@ -241,6 +332,12 @@ class _IntaleqMapState extends State<IntaleqMap> {
     
     // Apply defaults AFTER markers have initialized the symbol layer
     await ctrl.applyMarkerVisibilityDefaults();
+
+    // Safely refresh to enable native location layer after style is ready on iOS
+    if (widget.myLocationEnabled && mounted) {
+      print("📍 [IntaleqMapWidget] Enabling native location layer after style is loaded.");
+      setState(() {});
+    }
   }
 
   @override
@@ -249,7 +346,9 @@ class _IntaleqMapState extends State<IntaleqMap> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return mgl.MaplibreMap(
+    final bool canEnableLocation = _isNativeStyleLoaded && widget.myLocationEnabled;
+
+    return mgl.MapLibreMap(
       styleString: _styleString!,
       initialCameraPosition: widget.initialCameraPosition.toMapLibre(),
       onMapCreated: _onMapCreated,
@@ -262,20 +361,22 @@ class _IntaleqMapState extends State<IntaleqMap> {
           : null,
       onCameraIdle: () {
         _isCameraMoving = false;
-        if (widget.autoCache) {
+        final url = _resolvedStyleUrl;
+        final isRemote = url.startsWith('http://') || url.startsWith('https://');
+        if (widget.autoCache && isRemote) {
           final pos = _controller?.cameraPosition;
           if (pos != null) {
             IntaleqOfflineService.instance.downloadRegion(
               pos.target,
-              styleUrl: _resolvedStyleUrl,
+              styleUrl: url,
             );
           }
         }
         widget.onCameraIdle?.call();
       },
       onCameraTrackingChanged: null,
-      myLocationEnabled: widget.myLocationEnabled,
-      myLocationRenderMode: widget.myLocationEnabled
+      myLocationEnabled: canEnableLocation,
+      myLocationRenderMode: canEnableLocation
           ? mgl.MyLocationRenderMode.normal
           : mgl.MyLocationRenderMode.normal,
       myLocationTrackingMode: mgl.MyLocationTrackingMode.none,
@@ -306,3 +407,11 @@ class _IntaleqMapState extends State<IntaleqMap> {
     );
   }
 }
+
+/// Primary brand widget for Siro Maps SDK.
+typedef SiroMap = IntaleqMap;
+
+/// Backward compatibility alias for developers migrating from `google_maps_flutter`.
+typedef GoogleMap = IntaleqMap;
+
+

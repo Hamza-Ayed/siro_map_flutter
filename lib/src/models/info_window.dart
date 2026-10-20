@@ -1,3 +1,4 @@
+// وظيفة الملف: تنفيذ أو إعداد info window ضمن هذا الجزء من المشروع.
 import 'package:flutter/foundation.dart' show VoidCallback;
 
 /// Text labels and a tap callback shown when a [Marker] is tapped.

@@ -1,3 +1,4 @@
+// وظيفة الملف: تنفيذ أو إعداد colors ضمن هذا الجزء من المشروع.
 import 'dart:ui' show Color;
 
 /// Intaleq brand color palette.

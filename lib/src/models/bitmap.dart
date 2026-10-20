@@ -1,3 +1,4 @@
+// وظيفة الملف: تنفيذ أو إعداد bitmap ضمن هذا الجزء من المشروع.
 import 'dart:typed_data' show Uint8List;
 
 /// Defines a bitmap image for use as a [Marker] icon.
@@ -62,11 +63,24 @@ class InlqBitmap {
   /// icon: InlqBitmap.fromAsset('assets/icons/car.png')
   /// ```
   static InlqBitmap fromAsset(String assetName, {double? size}) {
+    final sanitizedId = 'asset_${assetName.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_')}';
     return InlqBitmap._(
-      mapLibreImageId: 'asset:$assetName',
+      mapLibreImageId: sanitizedId,
       assetName: assetName,
       size: size,
     );
+  }
+
+  /// Load an icon from an asset image configuration (google_maps_flutter compatibility).
+  static Future<InlqBitmap> fromAssetImage(
+    dynamic configuration,
+    String assetName, {
+    dynamic bundle,
+    String? package,
+    bool mipmaps = true,
+  }) async {
+    final fullName = package == null ? assetName : 'packages/$package/$assetName';
+    return InlqBitmap.fromAsset(fullName);
   }
 
   /// Load an icon from raw image bytes (e.g. a network image you decoded).
@@ -89,5 +103,20 @@ class InlqBitmap {
   }
 
   @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is InlqBitmap &&
+          runtimeType == other.runtimeType &&
+          mapLibreImageId == other.mapLibreImageId &&
+          size == other.size;
+
+  @override
+  int get hashCode => Object.hash(mapLibreImageId, size);
+
+  @override
   String toString() => 'InlqBitmap($mapLibreImageId)';
 }
+
+/// Backward compatibility alias for developers migrating from `google_maps_flutter`.
+typedef BitmapDescriptor = InlqBitmap;
+

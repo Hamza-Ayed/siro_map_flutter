@@ -1,5 +1,6 @@
+// وظيفة الملف: تطبيق تجريبي رسمي لحزمة Siro Maps SDK
 import 'package:flutter/material.dart';
-import 'package:intaleq_maps/intaleq_maps.dart';
+import 'package:siro_map/siro_map.dart';
 
 void main() {
   runApp(const MyApp());
@@ -11,7 +12,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Intaleq Maps Example',
+      title: 'Siro Maps Example',
       theme: ThemeData(
         useMaterial3: true,
         colorSchemeSeed: Colors.blue,
@@ -29,16 +30,16 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  IntaleqMapController? _controller;
+  SiroMapController? _controller;
 
   // Example marker
   final Set<Marker> _markers = {
     const Marker(
-      markerId: MarkerId('damascus'),
-      position: LatLng(33.5138, 36.2765),
+      markerId: MarkerId('amman'),
+      position: LatLng(31.9539, 35.9106),
       infoWindow: InfoWindow(
-        title: 'Damascus',
-        snippet: 'The oldest continuously inhabited city.',
+        title: 'عمان - الأردن',
+        snippet: 'Siro Sovereign Maps Gateway',
       ),
     ),
   };
@@ -47,12 +48,12 @@ class _MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Intaleq Maps Demo'),
+        title: const Text('Siro Maps Demo'),
       ),
-      body: IntaleqMap(
+      body: SiroMap(
         apiKey: 'YOUR_API_KEY_HERE', // Replace with a valid key
         initialCameraPosition: const CameraPosition(
-          target: LatLng(33.5138, 36.2765),
+          target: LatLng(31.9539, 35.9106),
           zoom: 12,
         ),
         markers: _markers,
@@ -68,7 +69,7 @@ class _MapScreenState extends State<MapScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           _controller?.animateCamera(
-            CameraUpdate.newLatLngZoom(const LatLng(31.9454, 35.9284), 12),
+            CameraUpdate.newLatLngZoom(const LatLng(31.9539, 35.9106), 14),
           );
         },
         child: const Icon(Icons.location_city),

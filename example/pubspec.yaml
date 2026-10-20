@@ -1,5 +1,6 @@
-name: intaleq_maps_example
-description: Demonstrates how to use the Intaleq Maps SDK.
+# وظيفة الملف: تعريف تطبيق المثال واعتماديات Flutter اللازمة لتجربة SDK.
+name: siro_map_example
+description: Demonstrates how to use the Siro Maps SDK.
 publish_to: 'none'
 
 environment:
@@ -9,7 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  intaleq_maps:
+  siro_map:
     path: ../
 
 dev_dependencies:

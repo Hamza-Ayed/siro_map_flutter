@@ -1,18 +1,19 @@
-# Intaleq Maps SDK for Flutter
+# Siro Maps SDK for Flutter (`siro_map`)
 
-A **drop-in replacement for `google_maps_flutter`** backed by MapLibre GL, optimized for Jordan, Syria, and the broader MENA region.
+A high-performance **drop-in replacement for `google_maps_flutter`** backed by MapLibre GL, optimized for Jordan, Syria, Saudi Arabia, UAE, and the broader MENA region.
 
 ---
 
-## Why Intaleq Maps?
+## Why Siro Maps?
 
-| Feature | `google_maps_flutter` | `intaleq_maps` |
+| Feature | `google_maps_flutter` | `siro_map` |
 |---|---|---|
-| Works in Syria (sanctions) | ❌ | ✅ |
-| Self-hosted tiles | ❌ | ✅ |
-| MENA-optimised data | ❌ | ✅ |
-| Same Flutter API | — | ✅ |
-| Offline-ready styles | ❌ | ✅ |
+| Works in Syria & restricted zones | ❌ | ✅ |
+| Self-hosted sovereign tiles | ❌ | ✅ |
+| MENA-optimised data & Arabic search | ❌ | ✅ |
+| 1:1 Google Maps Flutter API Parity | — | ✅ |
+| Offline-ready 3D Terrain & Extrusions | ❌ | ✅ |
+| Backward-compatible with `intaleq_maps` | ❌ | ✅ |
 
 ---
 
@@ -20,23 +21,31 @@ A **drop-in replacement for `google_maps_flutter`** backed by MapLibre GL, optim
 
 ```yaml
 dependencies:
-  intaleq_maps: ^2.2.0
+  siro_map: ^1.0.0
 ```
 
 ---
 
 ## Migration from `google_maps_flutter`
 
-The API is intentionally identical. Most migrations are a find-and-replace:
+The API is intentionally 1:1 identical. Most migrations only need changing the import:
 
-| Google | Intaleq |
-|---|---|
-| `GoogleMap(…)` | `IntaleqMap(apiKey: key, …)` |
-| `GoogleMapController` | `IntaleqMapController` |
-| `BitmapDescriptor` | `InlqBitmap` |
-| `MapType.normal` | `IntaleqMapType.normal` |
+```dart
+// Before:
+// import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-Everything else — `Marker`, `Polyline`, `Circle`, `Polygon`, `MarkerId`, `PolylineId`, `InfoWindow`, `CameraUpdate`, `LatLng`, `LatLngBounds` — is **identical**.
+// After:
+import 'package:siro_map/siro_map.dart';
+```
+
+| Google Maps | Siro Maps (`siro_map`) | Backward Compatibility Alias |
+|---|---|---|
+| `GoogleMap(…)` | `SiroMap(apiKey: key, …)` | `IntaleqMap(…)` & `GoogleMap(…)` |
+| `GoogleMapController` | `SiroMapController` | `IntaleqMapController` |
+| `BitmapDescriptor` | `InlqBitmap` | `BitmapDescriptor` |
+| `MapType.normal` | `IntaleqMapType.normal` | `MapType.normal` |
+
+Everything else — `Marker`, `Polyline`, `Circle`, `Polygon`, `MarkerId`, `PolylineId`, `InfoWindow`, `CameraUpdate`, `LatLng`, `LatLngBounds` — is **100% identical**.
 
 ---
 
@@ -45,9 +54,19 @@ Everything else — `Marker`, `Polyline`, `Circle`, `Polygon`, `MarkerId`, `Poly
 ### Basic map
 
 ```dart
-IntaleqMap(
-  apiKey: 'YOUR_INTALEQ_API_KEY',
+import 'package:siro_map/siro_map.dart';
+
+SiroMap(
+  apiKey: 'YOUR_SIRO_API_KEY',
   initialCameraPosition: CameraPosition(
+    target: LatLng(31.9539, 35.9106), // Amman
+    zoom: 14,
+  ),
+  onMapCreated: (SiroMapController controller) {
+    _controller = controller;
+  },
+)
+```
     target: LatLng(33.5138, 36.2765), // Damascus
     zoom: 14,
   ),

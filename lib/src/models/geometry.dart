@@ -1,3 +1,4 @@
+// وظيفة الملف: تنفيذ أو إعداد geometry ضمن هذا الجزء من المشروع.
 import 'dart:ui' show Offset, Color;
 import 'package:flutter/foundation.dart' show VoidCallback, ValueChanged;
 import 'package:maplibre_gl/maplibre_gl.dart' as mgl;
@@ -196,7 +197,7 @@ class Marker {
       iconAnchor: _anchorToString(anchor),
       draggable: draggable,
       zIndex: zIndex.toInt(),
-      textField: infoWindow.title,
+      textField: (infoWindow.snippet == 'show_label' && infoWindow.title != null) ? infoWindow.title : null,
       textAnchor: 'bottom',
       textOffset: const Offset(0, -3.0),
       textSize: 12.0,
@@ -210,11 +211,7 @@ class Marker {
           : (infoWindow.snippet == 'stop_1' ? '#9C27B0' // Purple
           : '#FFFFFF'))),
       textHaloWidth: 3.0,
-      // The bundled Intaleq styles serve glyphs from a host that only carries
-      // Noto Sans. Without an explicit font, the annotation layer falls back to
-      // "Open Sans Regular, Arial Unicode MS Regular"; that glyph request 404s
-      // and MapLibre then drops the entire symbol — icon included — on iOS.
-      fontNames: infoWindow.title != null ? const ['Noto Sans Regular'] : null,
+      fontNames: (infoWindow.snippet == 'show_label' && infoWindow.title != null) ? const ['Noto Sans Regular'] : null,
     );
   }
 
@@ -571,9 +568,12 @@ class Polygon {
 
 /// Converts a Flutter [Color] to a CSS hex string (e.g. '#0D47A1').
 String _colorToHex(Color color) {
-  return '#${color.red.toRadixString(16).padLeft(2, '0')}'
-      '${color.green.toRadixString(16).padLeft(2, '0')}'
-      '${color.blue.toRadixString(16).padLeft(2, '0')}';
+  final r = (color.r * 255.0).round().clamp(0, 255);
+  final g = (color.g * 255.0).round().clamp(0, 255);
+  final b = (color.b * 255.0).round().clamp(0, 255);
+  return '#${r.toRadixString(16).padLeft(2, '0')}'
+      '${g.toRadixString(16).padLeft(2, '0')}'
+      '${b.toRadixString(16).padLeft(2, '0')}';
 }
 
 // ─────────────────────────────────────────────────────────────
