@@ -1,4 +1,4 @@
-// وظيفة الملف: تنفيذ أو إعداد intaleq map controller ضمن هذا الجزء من المشروع.
+// وظيفة الملف: تنفيذ أو إعداد siro map controller ضمن هذا الجزء من المشروع.
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
@@ -10,12 +10,12 @@ import 'models/geometry.dart';
 import 'models/bitmap.dart';
 import 'models/types.dart';
 
-/// Controls a live [IntaleqMap] widget.
+/// Controls a live [SiroMap] widget.
 ///
-/// Obtain a reference via the [IntaleqMap.onMapCreated] callback.
+/// Obtain a reference via the [SiroMap.onMapCreated] callback.
 /// This API mirrors [GoogleMapController] from `google_maps_flutter`.
-class IntaleqMapController {
-  IntaleqMapController._({
+class SiroMapController {
+  SiroMapController._({
     required mgl.MapLibreMapController raw,
     required String apiKey,
   })  : _raw = raw,
@@ -56,11 +56,11 @@ class IntaleqMapController {
 
   // ── Factory / init ─────────────────────────────────────────
 
-  static Future<IntaleqMapController> create({
+  static Future<SiroMapController> create({
     required mgl.MapLibreMapController raw,
     required String apiKey,
   }) async {
-    final ctrl = IntaleqMapController._(raw: raw, apiKey: apiKey);
+    final ctrl = SiroMapController._(raw: raw, apiKey: apiKey);
     await ctrl._registerDefaultImages();
     return ctrl;
   }
@@ -70,13 +70,13 @@ class IntaleqMapController {
     try {
       final bytes = await rootBundle
           .load('packages/siro_map/assets/markers/default.png');
-      await _raw.addImage('intaleq-marker-default', bytes.buffer.asUint8List());
+      await _raw.addImage('siro-marker-default', bytes.buffer.asUint8List());
       return;
     } catch (_) {}
     try {
       final bytes = await rootBundle
-          .load('packages/intaleq_maps/assets/markers/default.png');
-      await _raw.addImage('intaleq-marker-default', bytes.buffer.asUint8List());
+          .load('packages/siro_map/assets/markers/default.png');
+      await _raw.addImage('siro-marker-default', bytes.buffer.asUint8List());
     } catch (_) {
       // Asset not found — developer can register their own via addImage().
     }
@@ -105,16 +105,16 @@ class IntaleqMapController {
       final pending = _pendingCameraUpdate!;
       final animated = _pendingCameraAnimated;
       _pendingCameraUpdate = null;
-      print("🎬 [IntaleqController] Style loaded! Flushing queued camera update (animated=$animated)...");
+      print("🎬 [SiroController] Style loaded! Flushing queued camera update (animated=$animated)...");
       try {
         if (animated) {
           await _raw.animateCamera(pending.toMapLibre());
         } else {
           await _raw.moveCamera(pending.toMapLibre());
         }
-        print("✅ [IntaleqController] Queued camera update executed successfully.");
+        print("✅ [SiroController] Queued camera update executed successfully.");
       } catch (e) {
-        print("⚠️ [IntaleqController] Queued camera update trapped error: $e");
+        print("⚠️ [SiroController] Queued camera update trapped error: $e");
       }
     }
   }
@@ -147,16 +147,16 @@ class IntaleqMapController {
   /// Animates the camera to the given [update]. Safe on iOS before style is loaded.
   Future<bool?> animateCamera(CameraUpdate update) async {
     if (!_isStyleLoaded) {
-      print("⏳ [IntaleqController] animateCamera: Style not loaded yet. Queuing camera update safely.");
+      print("⏳ [SiroController] animateCamera: Style not loaded yet. Queuing camera update safely.");
       _pendingCameraUpdate = update;
       _pendingCameraAnimated = true;
       return null;
     }
     try {
-      print("🎬 [IntaleqController] animateCamera: Executing native animation now.");
+      print("🎬 [SiroController] animateCamera: Executing native animation now.");
       return await _raw.animateCamera(update.toMapLibre());
     } catch (e) {
-      print("⚠️ [IntaleqController] animateCamera native call error: $e. Re-queuing.");
+      print("⚠️ [SiroController] animateCamera native call error: $e. Re-queuing.");
       _pendingCameraUpdate = update;
       _pendingCameraAnimated = true;
       return null;
@@ -166,16 +166,16 @@ class IntaleqMapController {
   /// Instantly moves the camera to the given [update]. Safe on iOS before style is loaded.
   Future<bool?> moveCamera(CameraUpdate update) async {
     if (!_isStyleLoaded) {
-      print("⏳ [IntaleqController] moveCamera: Style not loaded yet. Queuing camera update safely.");
+      print("⏳ [SiroController] moveCamera: Style not loaded yet. Queuing camera update safely.");
       _pendingCameraUpdate = update;
       _pendingCameraAnimated = false;
       return null;
     }
     try {
-      print("🎬 [IntaleqController] moveCamera: Executing native move now.");
+      print("🎬 [SiroController] moveCamera: Executing native move now.");
       return await _raw.moveCamera(update.toMapLibre());
     } catch (e) {
-      print("⚠️ [IntaleqController] moveCamera native call error: $e. Re-queuing.");
+      print("⚠️ [SiroController] moveCamera native call error: $e. Re-queuing.");
       _pendingCameraUpdate = update;
       _pendingCameraAnimated = false;
       return null;
@@ -248,7 +248,7 @@ class IntaleqMapController {
     try {
       await _raw.setLayerVisibility(layerId, visible);
     } catch (e) {
-      print("⚠️ [IntaleqController] setLayerVisibility error for $layerId: $e");
+      print("⚠️ [SiroController] setLayerVisibility error for $layerId: $e");
     }
   }
 
@@ -304,7 +304,7 @@ class IntaleqMapController {
   // ── Map images ─────────────────────────────────────────────
 
   /// Register a custom image into the map.
-  /// Required before using [InlqBitmap.fromBytes] or custom style images.
+  /// Required before using [SiroBitmap.fromBytes] or custom style images.
   Future<void> addImage(String imageId, Uint8List bytes) async {
     await _raw.addImage(imageId, bytes);
     _loadedImages.add(imageId);
@@ -327,7 +327,7 @@ class IntaleqMapController {
       await applyMarkerVisibilityDefaults();
       return symbol;
     } catch (e) {
-      print("⚠️ [IntaleqMapController] addMarker failed for ${marker.markerId.value}: $e");
+      print("⚠️ [SiroMapController] addMarker failed for ${marker.markerId.value}: $e");
       return null;
     }
   }
@@ -345,7 +345,7 @@ class IntaleqMapController {
       await _raw.updateSymbol(symbol, marker.toSymbolOptions());
       _symbolToMarker[symbol.id] = marker;
     } catch (e) {
-      print("⚠️ [IntaleqMapController] _updateMarker failed for ${marker.markerId.value}: $e");
+      print("⚠️ [SiroMapController] _updateMarker failed for ${marker.markerId.value}: $e");
     }
   }
 
@@ -612,9 +612,9 @@ class IntaleqMapController {
     _fills.clear();
   }
 
-  // ── Intaleq API integrations ───────────────────────────────
+  // ── Siro API integrations ───────────────────────────────
 
-  /// Searches for places using the Intaleq Geocoding API.
+  /// Searches for places using the Siro Geocoding API.
   Future<List<dynamic>> searchPlaces(String query) async {
     final uri = Uri.https('map-saas.intaleqapp.com', '/api/geocoding/search', {
       'q': query,
@@ -642,7 +642,7 @@ class IntaleqMapController {
   ///
   /// [profile] is one of: `driving`, `cycling`, `walking`.
   /// [steps] when true, returns turn-by-turn navigation steps.
-  /// Returns the raw Intaleq Routing API response.
+  /// Returns the raw Siro Routing API response.
   Future<Map<String, dynamic>> getDirections(
     mgl.LatLng origin,
     mgl.LatLng destination, {
@@ -695,7 +695,7 @@ class IntaleqMapController {
         return polylineId;
       }
     } catch (e) {
-      print('IntaleqMapController.drawRoute error: $e');
+      print('SiroMapController.drawRoute error: $e');
     }
     return null;
   }
@@ -704,32 +704,29 @@ class IntaleqMapController {
 
   final Set<String> _loadedImages = {};
 
-  Future<void> _loadBitmapIfNeeded(InlqBitmap bitmap) async {
+  Future<void> _loadBitmapIfNeeded(SiroBitmap bitmap) async {
     final id = bitmap.mapLibreImageId;
     if (_loadedImages.contains(id)) return;
 
     if (bitmap.bytes != null) {
       await _raw.addImage(id, bitmap.bytes!);
       _loadedImages.add(id);
-      print("🖼️ [IntaleqMapController] Registered custom marker bitmap from bytes: $id");
+      print("🖼️ [SiroMapController] Registered custom marker bitmap from bytes: $id");
     } else if (bitmap.assetName != null) {
       try {
         final data = await rootBundle.load(bitmap.assetName!);
         await _raw.addImage(id, data.buffer.asUint8List());
         _loadedImages.add(id);
-        print("🖼️ [IntaleqMapController] Registered custom marker asset: ${bitmap.assetName} as $id");
+        print("🖼️ [SiroMapController] Registered custom marker asset: ${bitmap.assetName} as $id");
       } catch (e) {
-        print("⚠️ [IntaleqMapController] Failed to load asset image ${bitmap.assetName}: $e");
+        print("⚠️ [SiroMapController] Failed to load asset image ${bitmap.assetName}: $e");
       }
     }
     // Style-registered images need no loading.
   }
 }
 
-/// Primary brand controller for Siro Maps SDK.
-typedef SiroMapController = IntaleqMapController;
-
 /// Backward compatibility alias for developers migrating from `google_maps_flutter`.
-typedef GoogleMapController = IntaleqMapController;
+typedef GoogleMapController = SiroMapController;
 
 

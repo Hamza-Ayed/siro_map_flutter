@@ -5,8 +5,8 @@ import 'dart:typed_data' show Uint8List;
 ///
 /// This class mirrors `BitmapDescriptor` from `google_maps_flutter`.
 /// Internally it resolves to a MapLibre image name or inline bytes.
-class InlqBitmap {
-  const InlqBitmap._({
+class SiroBitmap {
+  const SiroBitmap._({
     required this.mapLibreImageId,
     this.size,
     this.bytes,
@@ -29,8 +29,8 @@ class InlqBitmap {
   // ── Built-in defaults ──────────────────────────────────────
 
   /// The standard blue pin marker (default).
-  static const InlqBitmap defaultMarker = InlqBitmap._(
-    mapLibreImageId: 'intaleq-marker-default',
+  static const SiroBitmap defaultMarker = SiroBitmap._(
+    mapLibreImageId: 'siro-marker-default',
   );
 
   // Hue constants matching google_maps_flutter
@@ -47,10 +47,10 @@ class InlqBitmap {
 
   /// A colored pin marker. [hue] is a value from 0–360 (HSV hue).
   ///
-  /// Use the `hue*` constants (e.g. [InlqBitmap.hueBlue]) for clarity.
-  static InlqBitmap defaultMarkerWithHue(double hue) {
-    return InlqBitmap._(
-      mapLibreImageId: 'intaleq-marker-hue-${hue.toInt()}',
+  /// Use the `hue*` constants (e.g. [SiroBitmap.hueBlue]) for clarity.
+  static SiroBitmap defaultMarkerWithHue(double hue) {
+    return SiroBitmap._(
+      mapLibreImageId: 'siro-marker-hue-${hue.toInt()}',
       size: 1.0,
     );
   }
@@ -60,11 +60,11 @@ class InlqBitmap {
   /// Load an icon from a Flutter asset bundle.
   ///
   /// ```dart
-  /// icon: InlqBitmap.fromAsset('assets/icons/car.png')
+  /// icon: SiroBitmap.fromAsset('assets/icons/car.png')
   /// ```
-  static InlqBitmap fromAsset(String assetName, {double? size}) {
+  static SiroBitmap fromAsset(String assetName, {double? size}) {
     final sanitizedId = 'asset_${assetName.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_')}';
-    return InlqBitmap._(
+    return SiroBitmap._(
       mapLibreImageId: sanitizedId,
       assetName: assetName,
       size: size,
@@ -72,7 +72,7 @@ class InlqBitmap {
   }
 
   /// Load an icon from an asset image configuration (google_maps_flutter compatibility).
-  static Future<InlqBitmap> fromAssetImage(
+  static Future<SiroBitmap> fromAssetImage(
     dynamic configuration,
     String assetName, {
     dynamic bundle,
@@ -80,12 +80,12 @@ class InlqBitmap {
     bool mipmaps = true,
   }) async {
     final fullName = package == null ? assetName : 'packages/$package/$assetName';
-    return InlqBitmap.fromAsset(fullName);
+    return SiroBitmap.fromAsset(fullName);
   }
 
   /// Load an icon from raw image bytes (e.g. a network image you decoded).
-  static InlqBitmap fromBytes(Uint8List bytes, {double? size}) {
-    return InlqBitmap._(
+  static SiroBitmap fromBytes(Uint8List bytes, {double? size}) {
+    return SiroBitmap._(
       mapLibreImageId: 'bytes:${bytes.hashCode}',
       bytes: bytes,
       size: size,
@@ -95,8 +95,8 @@ class InlqBitmap {
   /// Reference an image already registered in the MapLibre style.
   ///
   /// Use this when your map style JSON already defines the sprite image.
-  static InlqBitmap fromStyleImage(String imageId, {double? size}) {
-    return InlqBitmap._(
+  static SiroBitmap fromStyleImage(String imageId, {double? size}) {
+    return SiroBitmap._(
       mapLibreImageId: imageId,
       size: size,
     );
@@ -105,7 +105,7 @@ class InlqBitmap {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is InlqBitmap &&
+      other is SiroBitmap &&
           runtimeType == other.runtimeType &&
           mapLibreImageId == other.mapLibreImageId &&
           size == other.size;
@@ -114,9 +114,9 @@ class InlqBitmap {
   int get hashCode => Object.hash(mapLibreImageId, size);
 
   @override
-  String toString() => 'InlqBitmap($mapLibreImageId)';
+  String toString() => 'SiroBitmap($mapLibreImageId)';
 }
 
 /// Backward compatibility alias for developers migrating from `google_maps_flutter`.
-typedef BitmapDescriptor = InlqBitmap;
+typedef BitmapDescriptor = SiroBitmap;
 

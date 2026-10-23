@@ -19,9 +19,9 @@ export 'package:maplibre_gl/maplibre_gl.dart'
         MyLocationTrackingMode;
 
 // Public SDK surface
-export 'src/intaleq_map_widget.dart';
-export 'src/intaleq_map_controller.dart';
-export 'src/intaleq_3d_map.dart';
+export 'src/siro_map_widget.dart';
+export 'src/siro_map_controller.dart';
+export 'src/siro_3d_map.dart';
 export 'src/styles.dart';
 export 'src/offline_service.dart';
 export 'src/telemetry_service.dart';

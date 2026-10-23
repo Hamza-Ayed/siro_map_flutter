@@ -95,7 +95,7 @@ class Marker {
     this.anchor = const Offset(0.5, 1.0),
     this.draggable = false,
     this.flat = false,
-    this.icon = InlqBitmap.defaultMarker,
+    this.icon = SiroBitmap.defaultMarker,
     this.infoWindow = InfoWindow.noText,
     this.rotation = 0.0,
     this.visible = true,
@@ -125,7 +125,7 @@ class Marker {
   final bool flat;
 
   /// The icon image for the marker.
-  final InlqBitmap icon;
+  final SiroBitmap icon;
 
   /// Info window shown when the marker is tapped.
   final InfoWindow infoWindow;
@@ -157,7 +157,7 @@ class Marker {
     Offset? anchor,
     bool? draggable,
     bool? flat,
-    InlqBitmap? icon,
+    SiroBitmap? icon,
     InfoWindow? infoWindow,
     double? rotation,
     bool? visible,
@@ -417,7 +417,7 @@ class Circle {
 
   /// Internal: converts to MapLibre CircleOptions.
   /// Note: MapLibre circle radius is in pixels, not meters. For a true
-  /// meter-accurate circle, use [IntaleqMapController.addCircleAccurate].
+  /// meter-accurate circle, use [SiroMapController.addCircleAccurate].
   mgl.CircleOptions toCircleOptions() {
     return mgl.CircleOptions(
       geometry: center,

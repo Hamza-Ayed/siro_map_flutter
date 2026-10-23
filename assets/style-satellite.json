@@ -1,10 +1,10 @@
 {
   "version": 8,
-  "name": "Intaleq Satellite Hybrid",
+  "name": "Siro Satellite Hybrid",
   "metadata": {
-    "brand": "Intaleq",
+    "brand": "Siro",
     "version": "2.0.0",
-    "description": "Google + OSM hybrid style with 3D buildings, railways, subway, waterways, and Intaleq brand palette"
+    "description": "Google + OSM hybrid style with 3D buildings, railways, subway, waterways, and Siro brand palette"
   },
   "center": [
     36.276008,
@@ -35,7 +35,7 @@
         "https://tiles.intaleqapp.com/planet_osm_polygon/{z}/{x}/{y}"
       ],
       "maxzoom": 14,
-      "attribution": "© Intaleq | © OpenStreetMap contributors"
+      "attribution": "© Siro | © OpenStreetMap contributors"
     },
     "local-osm-lines": {
       "type": "vector",

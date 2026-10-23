@@ -1,8 +1,8 @@
 {
   "version": 8,
-  "name": "Intaleq Sovereign 3D Topographic & Terrain Style (خريطة التضاريس ثلاثية الأبعاد السيادية)",
+  "name": "Siro Sovereign 3D Topographic & Terrain Style (خريطة التضاريس ثلاثية الأبعاد السيادية)",
   "metadata": {
-    "brand": "Intaleq",
+    "brand": "Siro",
     "version": "3.5.0-terrain-3d",
     "description": "High-fidelity Sovereign 3D Topographic Style with DEM terrain displacement, dynamic hillshading, contour lines, and 3D architectural extrusions"
   },
@@ -31,7 +31,7 @@
       ],
       "tileSize": 256,
       "maxzoom": 19,
-      "attribution": "© Intaleq Sovereign Earth Observation Engine"
+      "attribution": "© Siro Sovereign Earth Observation Engine"
     },
     "local-osm-polygons": {
       "type": "vector",
@@ -39,7 +39,7 @@
         "https://tiles.intaleqapp.com/planet_osm_polygon/{z}/{x}/{y}"
       ],
       "maxzoom": 14,
-      "attribution": "© Intaleq | © OpenStreetMap contributors"
+      "attribution": "© Siro | © OpenStreetMap contributors"
     },
     "local-osm-lines": {
       "type": "vector",

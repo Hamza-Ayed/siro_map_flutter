@@ -1,16 +1,16 @@
 // وظيفة الملف: تنفيذ أو إعداد colors ضمن هذا الجزء من المشروع.
 import 'dart:ui' show Color;
 
-/// Intaleq brand color palette.
+/// Siro brand color palette.
 ///
 /// CSS hex strings are provided for use with MapLibre layer properties.
 /// Flutter [Color] constants are provided for use in Dart/Flutter code.
-class IntaleqColors {
-  IntaleqColors._();
+class SiroColors {
+  SiroColors._();
 
   // ── Flutter Color constants ────────────────────────────────
 
-  /// Primary Intaleq blue.
+  /// Primary Siro blue.
   static const Color primaryBlue = Color(0xFF0D47A1);
 
   /// Cyan for active / remaining route lines.

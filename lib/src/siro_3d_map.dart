@@ -4,10 +4,10 @@ import 'package:maplibre_gl/maplibre_gl.dart' as mgl;
 import 'package:webview_flutter/webview_flutter.dart';
 
 /// وحدة التحكم التفاعلية بمحرك التضاريس ثلاثية الأبعاد السيادي
-class Intaleq3DController {
+class Siro3DController {
   final WebViewController _webController;
 
-  Intaleq3DController(this._webController);
+  Siro3DController(this._webController);
 
   /// تحديث موقع المركبة وزاويتها وتحريك كاميرا التضاريس 3D برؤية السائق (Cockpit) مع ارتفاعات الطريق
   Future<void> updateUserLocation({
@@ -145,7 +145,7 @@ class Intaleq3DController {
 }
 
 /// خريطة التضاريس ثلاثية الأبعاد السيادية المسرّعة عتادياً بتقنية GPU Mesh
-class Intaleq3DMap extends StatefulWidget {
+class Siro3DMap extends StatefulWidget {
   final mgl.LatLng initialCenter;
   final double initialZoom;
   final double initialPitch;
@@ -161,12 +161,12 @@ class Intaleq3DMap extends StatefulWidget {
   final bool followUser;
   final List<mgl.LatLng>? routePoints;
   final mgl.LatLng? destination;
-  final Function(Intaleq3DController)? onMapCreated;
+  final Function(Siro3DController)? onMapCreated;
   final Function(mgl.LatLng)? onTap;
   final Function(mgl.LatLng)? onLongPress;
   final Function(double)? onElevationChanged;
 
-  const Intaleq3DMap({
+  const Siro3DMap({
     super.key,
     this.initialCenter = const mgl.LatLng(31.9539, 35.9106),
     this.initialZoom = 18.5,
@@ -190,14 +190,14 @@ class Intaleq3DMap extends StatefulWidget {
   });
 
   @override
-  State<Intaleq3DMap> createState() => _Intaleq3DMapState();
+  State<Siro3DMap> createState() => _Siro3DMapState();
 }
 
-class _Intaleq3DMapState extends State<Intaleq3DMap> {
+class _Siro3DMapState extends State<Siro3DMap> {
   late final WebViewController _controller;
   bool _isLoading = true;
-  Intaleq3DController? _intaleqController;
-  Intaleq3DController? get controller => _intaleqController;
+  Siro3DController? _siroController;
+  Siro3DController? get controller => _siroController;
 
   @override
   void initState() {
@@ -206,9 +206,9 @@ class _Intaleq3DMapState extends State<Intaleq3DMap> {
   }
 
   @override
-  void didUpdateWidget(Intaleq3DMap oldWidget) {
+  void didUpdateWidget(Siro3DMap oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final ctrl = _intaleqController;
+    final ctrl = _siroController;
     if (ctrl == null) return;
 
     if (widget.userLocation != null &&
@@ -278,17 +278,17 @@ class _Intaleq3DMapState extends State<Intaleq3DMap> {
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0xFF0F172A))
       ..addJavaScriptChannel(
-        'Intaleq3DBridge',
+        'Siro3DBridge',
         onMessageReceived: (JavaScriptMessage message) {
           try {
             final data = jsonDecode(message.message);
             final event = data['event'] as String?;
-            print("🛰️ [Intaleq3DBridge] Event received: $event");
+            print("🛰️ [Siro3DBridge] Event received: $event");
             if (event == 'mapLoaded') {
-              print("✅ [Intaleq3DMap] 3D Terrain Map successfully loaded with GPU DEM mesh!");
+              print("✅ [Siro3DMap] 3D Terrain Map successfully loaded with GPU DEM mesh!");
               setState(() => _isLoading = false);
-              final ctrl = Intaleq3DController(_controller);
-              _intaleqController = ctrl;
+              final ctrl = Siro3DController(_controller);
+              _siroController = ctrl;
               widget.onMapCreated?.call(ctrl);
 
               if (widget.userLocation != null) {
@@ -320,7 +320,7 @@ class _Intaleq3DMapState extends State<Intaleq3DMap> {
               final elev = (data['altitude'] as num).toDouble();
               widget.onElevationChanged?.call(elev);
             } else if (event == 'mapError' || event == 'jsError') {
-              print("❌ [Intaleq3DMap] $event: ${data['message']}");
+              print("❌ [Siro3DMap] $event: ${data['message']}");
             }
           } catch (_) {}
         },
@@ -328,14 +328,14 @@ class _Intaleq3DMapState extends State<Intaleq3DMap> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageFinished: (url) {
-            print("🚀 [Intaleq3DMap] onPageFinished: $url");
+            print("🚀 [Siro3DMap] onPageFinished: $url");
             setState(() => _isLoading = false);
-            final ctrl = Intaleq3DController(_controller);
-            _intaleqController = ctrl;
+            final ctrl = Siro3DController(_controller);
+            _siroController = ctrl;
             widget.onMapCreated?.call(ctrl);
           },
           onWebResourceError: (error) {
-            print("⚠️ [Intaleq3DMap] WebResourceError: ${error.description} (code: ${error.errorCode})");
+            print("⚠️ [Siro3DMap] WebResourceError: ${error.description} (code: ${error.errorCode})");
           },
         ),
       )
@@ -362,7 +362,7 @@ class _Intaleq3DMapState extends State<Intaleq3DMap> {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Intaleq Sovereign 3D Terrain Engine</title>
+  <title>Siro Sovereign 3D Terrain Engine</title>
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" crossorigin="anonymous" />
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js" crossorigin="anonymous"></script>
   <style>
@@ -475,16 +475,16 @@ class _Intaleq3DMapState extends State<Intaleq3DMap> {
 
     window.onerror = function(msg, url, line) {
       if (msg && msg.indexOf('Script error') !== -1) return;
-      if (window.Intaleq3DBridge) {
-        window.Intaleq3DBridge.postMessage(JSON.stringify({ event: 'jsError', message: msg + ' (' + line + ')' }));
+      if (window.Siro3DBridge) {
+        window.Siro3DBridge.postMessage(JSON.stringify({ event: 'jsError', message: msg + ' (' + line + ')' }));
       }
     };
 
     map.on('error', function(e) {
-      if (window.Intaleq3DBridge) {
+      if (window.Siro3DBridge) {
         const errMsg = (e && e.error && e.error.message) ? e.error.message : ((e && e.message) ? e.message : '');
         if (errMsg && !errMsg.includes('Load failed') && !errMsg.includes('404')) {
-          window.Intaleq3DBridge.postMessage(JSON.stringify({ event: 'mapError', message: errMsg }));
+          window.Siro3DBridge.postMessage(JSON.stringify({ event: 'mapError', message: errMsg }));
         }
       }
     });
@@ -567,14 +567,14 @@ class _Intaleq3DMapState extends State<Intaleq3DMap> {
       setupLongPressListener();
 
       // Notify Flutter host
-      if (window.Intaleq3DBridge) {
-        window.Intaleq3DBridge.postMessage(JSON.stringify({ event: 'mapLoaded' }));
+      if (window.Siro3DBridge) {
+        window.Siro3DBridge.postMessage(JSON.stringify({ event: 'mapLoaded' }));
       }
     });
 
     map.on('click', (e) => {
-      if (window.Intaleq3DBridge) {
-        window.Intaleq3DBridge.postMessage(JSON.stringify({
+      if (window.Siro3DBridge) {
+        window.Siro3DBridge.postMessage(JSON.stringify({
           event: 'mapClick',
           lat: e.lngLat.lat,
           lng: e.lngLat.lng
@@ -605,8 +605,8 @@ class _Intaleq3DMapState extends State<Intaleq3DMap> {
               window.setDestination(lngLat.lng, lngLat.lat);
               window.flyToDestination(lngLat.lng, lngLat.lat);
 
-              if (window.Intaleq3DBridge) {
-                window.Intaleq3DBridge.postMessage(JSON.stringify({
+              if (window.Siro3DBridge) {
+                window.Siro3DBridge.postMessage(JSON.stringify({
                   event: 'mapLongPress',
                   lat: lngLat.lat,
                   lng: lngLat.lng
@@ -640,8 +640,8 @@ class _Intaleq3DMapState extends State<Intaleq3DMap> {
         longPressTriggered = true;
         window.setDestination(e.lngLat.lng, e.lngLat.lat);
         window.flyToDestination(e.lngLat.lng, e.lngLat.lat);
-        if (window.Intaleq3DBridge) {
-          window.Intaleq3DBridge.postMessage(JSON.stringify({
+        if (window.Siro3DBridge) {
+          window.Siro3DBridge.postMessage(JSON.stringify({
             event: 'mapLongPress',
             lat: e.lngLat.lat,
             lng: e.lngLat.lng
@@ -694,8 +694,8 @@ class _Intaleq3DMapState extends State<Intaleq3DMap> {
         if (now - lastElevationPost > 400) {
           lastElevationPost = now;
           const elev = map.queryTerrainElevation([lng, lat]);
-          if (elev !== null && elev !== undefined && window.Intaleq3DBridge) {
-            window.Intaleq3DBridge.postMessage(JSON.stringify({
+          if (elev !== null && elev !== undefined && window.Siro3DBridge) {
+            window.Siro3DBridge.postMessage(JSON.stringify({
               event: 'elevationUpdate',
               altitude: elev
             }));

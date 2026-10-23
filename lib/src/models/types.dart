@@ -1,18 +1,18 @@
 // وظيفة الملف: تنفيذ أو إعداد types ضمن هذا الجزء من المشروع.
 import 'dart:ui';
 import 'package:maplibre_gl/maplibre_gl.dart' as mgl;
-import '../intaleq_map_controller.dart';
+import '../siro_map_controller.dart';
 
 // ─────────────────────────────────────────────────────────────
-// IntaleqMapType  (mirrors MapType in google_maps_flutter)
+// SiroMapType  (mirrors MapType in google_maps_flutter)
 // ─────────────────────────────────────────────────────────────
 
 /// The visual style of the base map tiles.
-enum IntaleqMapType {
+enum SiroMapType {
   /// No base map tiles.
   none,
 
-  /// Dark premium Obsidian style — the Intaleq default.
+  /// Dark premium Obsidian style — the Siro default.
   normal,
 
   /// High-contrast light style.
@@ -26,7 +26,7 @@ enum IntaleqMapType {
 }
 
 /// Backward compatibility alias for developers migrating from `google_maps_flutter`.
-typedef MapType = IntaleqMapType;
+typedef MapType = SiroMapType;
 
 
 // ─────────────────────────────────────────────────────────────
@@ -70,7 +70,7 @@ class CameraTargetBounds {
 // ─────────────────────────────────────────────────────────────
 
 /// Callback when the map is created.
-typedef MapCreatedCallback = void Function(IntaleqMapController controller);
+typedef MapCreatedCallback = void Function(SiroMapController controller);
 
 /// Generic callback for an argument of type [T].
 typedef ArgumentCallback<T> = void Function(T argument);

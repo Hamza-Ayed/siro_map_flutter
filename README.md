@@ -13,7 +13,6 @@ A high-performance **drop-in replacement for `google_maps_flutter`** backed by M
 | MENA-optimised data & Arabic search | ❌ | ✅ |
 | 1:1 Google Maps Flutter API Parity | — | ✅ |
 | Offline-ready 3D Terrain & Extrusions | ❌ | ✅ |
-| Backward-compatible with `intaleq_maps` | ❌ | ✅ |
 
 ---
 
@@ -38,12 +37,12 @@ The API is intentionally 1:1 identical. Most migrations only need changing the i
 import 'package:siro_map/siro_map.dart';
 ```
 
-| Google Maps | Siro Maps (`siro_map`) | Backward Compatibility Alias |
+| Google Maps | Siro Maps (`siro_map`) | Google-named alias kept for migration |
 |---|---|---|
-| `GoogleMap(…)` | `SiroMap(apiKey: key, …)` | `IntaleqMap(…)` & `GoogleMap(…)` |
-| `GoogleMapController` | `SiroMapController` | `IntaleqMapController` |
-| `BitmapDescriptor` | `InlqBitmap` | `BitmapDescriptor` |
-| `MapType.normal` | `IntaleqMapType.normal` | `MapType.normal` |
+| `GoogleMap(…)` | `SiroMap(apiKey: key, …)` | `GoogleMap` |
+| `GoogleMapController` | `SiroMapController` | `GoogleMapController` |
+| `BitmapDescriptor` | `SiroBitmap` | `BitmapDescriptor` |
+| `MapType.normal` | `SiroMapType.normal` | `MapType` |
 
 Everything else — `Marker`, `Polyline`, `Circle`, `Polygon`, `MarkerId`, `PolylineId`, `InfoWindow`, `CameraUpdate`, `LatLng`, `LatLngBounds` — is **100% identical**.
 
@@ -67,14 +66,6 @@ SiroMap(
   },
 )
 ```
-    target: LatLng(33.5138, 36.2765), // Damascus
-    zoom: 14,
-  ),
-  onMapCreated: (IntaleqMapController controller) {
-    _controller = controller;
-  },
-)
-```
 
 ### Declarative markers (exactly like Google Maps Flutter)
 
@@ -88,7 +79,7 @@ setState(() {
     Marker(
       markerId: MarkerId('driver_1'),
       position: LatLng(33.5138, 36.2765),
-      icon: InlqBitmap.fromAsset('assets/icons/car.png'),
+      icon: SiroBitmap.fromAsset('assets/icons/car.png'),
       infoWindow: InfoWindow(
         title: 'Ahmad',
         snippet: 'Toyota Corolla · 3 min away',
@@ -99,7 +90,7 @@ setState(() {
 });
 
 // Pass to widget:
-IntaleqMap(
+SiroMap(
   apiKey: _apiKey,
   initialCameraPosition: _camera,
   markers: _markers,       // ← declarative
@@ -140,7 +131,7 @@ setState(() {
     Polyline(
       polylineId: PolylineId('route'),
       points: points,
-      color: IntaleqColors.routeCyan,
+      color: SiroColors.routeCyan,
       width: 5,
     ),
   };
@@ -156,10 +147,10 @@ final results = await _controller.searchPlaces('مطار دمشق');
 ### Map types
 
 ```dart
-IntaleqMap(
-  mapType: IntaleqMapType.normal,    // Dark Obsidian (default)
-  // mapType: IntaleqMapType.light,
-  // mapType: IntaleqMapType.satellite,
+SiroMap(
+  mapType: SiroMapType.normal,    // Dark Obsidian (default)
+  // mapType: SiroMapType.light,
+  // mapType: SiroMapType.satellite,
   ...
 )
 ```
@@ -168,11 +159,11 @@ IntaleqMap(
 
 ## API Reference
 
-### `IntaleqMap` widget
+### `SiroMap` widget
 
 | Property | Type | Default | Description |
 |---|---|---|---|
-| `apiKey` | `String` | required | Your Intaleq Maps API key |
+| `apiKey` | `String` | required | Your Siro Maps API key |
 | `initialCameraPosition` | `CameraPosition` | required | Starting camera |
 | `markers` | `Set<Marker>` | `{}` | Declarative marker set |
 | `polylines` | `Set<Polyline>` | `{}` | Declarative polyline set |
@@ -183,10 +174,10 @@ IntaleqMap(
 | `onTap` | `ArgumentCallback<LatLng>?` | — | Map tap |
 | `onLongPress` | `ArgumentCallback<LatLng>?` | — | Map long press |
 | `onCameraMove` | `CameraPositionCallback?` | — | Camera movement |
-| `mapType` | `IntaleqMapType` | `.normal` | Tile style |
+| `mapType` | `SiroMapType` | `.normal` | Tile style |
 | `myLocationEnabled` | `bool` | `false` | Show user location dot |
 
-### `IntaleqMapController`
+### `SiroMapController`
 
 | Method | Description |
 |---|---|
@@ -195,8 +186,8 @@ IntaleqMap(
 | `getZoomLevel()` | Current zoom level |
 | `getVisibleRegion()` | Current `LatLngBounds` |
 | `clearOverlays()` | Remove all markers/lines/circles/polygons |
-| `getDirections(origin, dest)` | Intaleq Routing API |
-| `searchPlaces(query)` | Intaleq Geocoding API |
+| `getDirections(origin, dest)` | Siro Routing API |
+| `searchPlaces(query)` | Siro Geocoding API |
 | `reverseGeocode(position)` | Reverse geocoding |
 | `addImage(id, bytes)` | Register custom marker image |
 

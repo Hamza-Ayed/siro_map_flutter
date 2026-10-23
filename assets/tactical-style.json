@@ -1,8 +1,8 @@
 {
   "version": 8,
-  "name": "Intaleq Sovereign Tactical Military Style (منظومة الدفاع التكتيكية)",
+  "name": "Siro Sovereign Tactical Military Style (منظومة الدفاع التكتيكية)",
   "metadata": {
-    "brand": "Intaleq",
+    "brand": "Siro",
     "version": "3.2.0-tactical",
     "description": "Sovereign Military Tactical Style with Hillshade, Rock Escarpments, Cliffs, Retaining Walls, Berms, Wadis, Quarries, and Man-Made Obstacles"
   },
@@ -19,7 +19,7 @@
         "https://tiles.intaleqapp.com/planet_osm_polygon/{z}/{x}/{y}"
       ],
       "maxzoom": 14,
-      "attribution": "© Intaleq | © OpenStreetMap contributors"
+      "attribution": "© Siro | © OpenStreetMap contributors"
     },
     "local-osm-lines": {
       "type": "vector",

@@ -4,13 +4,13 @@ import 'dart:io';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'dart:math' as math;
 
-/// Service for managing offline map regions in Intaleq Maps.
+/// Service for managing offline map regions in Siro Maps.
 ///
 /// This service allows you to download map tiles for a specific region
 /// so they can be accessed without an internet connection.
-class IntaleqOfflineService {
-  static final IntaleqOfflineService instance = IntaleqOfflineService._();
-  IntaleqOfflineService._();
+class SiroOfflineService {
+  static final SiroOfflineService instance = SiroOfflineService._();
+  SiroOfflineService._();
 
   bool _isDownloading = false;
   LatLng? _lastDownloadedCenter;
@@ -38,7 +38,7 @@ class IntaleqOfflineService {
   /// Downloads map tiles for a specified radius around a coordinate.
   ///
   /// [center] is the midpoint of the region.
-  /// [styleUrl] is the style to download (e.g. from IntaleqStyles).
+  /// [styleUrl] is the style to download (e.g. from SiroStyles).
   /// [radiusKm] defines the extent of the download.
   void downloadRegion(
     LatLng center, {
@@ -82,7 +82,7 @@ class IntaleqOfflineService {
         await downloadOfflineRegion(
           regionDefinition,
           metadata: {
-            'name': 'Intaleq-${center.latitude}-${center.longitude}',
+            'name': 'Siro-${center.latitude}-${center.longitude}',
             'downloadDate': DateTime.now().toIso8601String(),
           },
         );

@@ -56,9 +56,9 @@ class TelemetryPoint {
 /// 1. أخذ عينة كل 3 ثوانٍ مع فلتر وقوف ذكي لحماية البطارية.
 /// 2. تجميع النقاط في دفعة وترحيلها كل دقيقتين (120 ثانية) أو عند بلوغ 40 نقطة.
 /// 3. حفظ احتياطي في الذاكرة حتى 400 نقطة عند انقطاع الشبكة.
-class IntaleqTelemetryService {
-  IntaleqTelemetryService._();
-  static final IntaleqTelemetryService instance = IntaleqTelemetryService._();
+class SiroTelemetryService {
+  SiroTelemetryService._();
+  static final SiroTelemetryService instance = SiroTelemetryService._();
 
   static const int samplingIntervalSeconds = 3;
   static const int defaultUploadIntervalSeconds = 120; // دقيقتان
@@ -208,18 +208,18 @@ class IntaleqTelemetryService {
         _buffer.removeRange(0, pointsToSend.length);
         _lastFlushTime = DateTime.now();
         if (kDebugMode) {
-          debugPrint('🛰️ [IntaleqTelemetry] Flushed ${pointsToSend.length} points to server.');
+          debugPrint('🛰️ [SiroTelemetry] Flushed ${pointsToSend.length} points to server.');
         }
         _isFlushing = false;
         return true;
       } else {
         if (kDebugMode) {
-          debugPrint('⚠️ [IntaleqTelemetry] Batch upload failed HTTP ${response.statusCode}: ${response.body}');
+          debugPrint('⚠️ [SiroTelemetry] Batch upload failed HTTP ${response.statusCode}: ${response.body}');
         }
       }
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('❌ [IntaleqTelemetry] Flush error: $e');
+        debugPrint('❌ [SiroTelemetry] Flush error: $e');
       }
     }
 
@@ -247,7 +247,7 @@ class IntaleqTelemetryService {
       return response.statusCode >= 200 && response.statusCode < 300;
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('❌ [IntaleqTelemetry] Single telemetry error: $e');
+        debugPrint('❌ [SiroTelemetry] Single telemetry error: $e');
       }
       return false;
     }

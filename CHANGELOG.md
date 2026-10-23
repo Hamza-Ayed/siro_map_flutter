@@ -11,7 +11,7 @@
   `apps/web/src/utils/mapIcons.ts` in the monorepo for the reference implementation).
   Without this, icon-based layers (POIs, direction arrows) render with empty icons.
 * Note: this only updates the **local/offline** style asset. The primary runtime path
-  (`IntaleqStyles.light/obsidian`) already served the corrected style live via
+  (`SiroStyles.light/obsidian`) already served the corrected style live via
   `/api/maps/style.json` as of 2026-07-31 — no server change needed for those.
 
 ## 2.2.1
@@ -20,7 +20,7 @@
 
 ## 2.2.0
 
-* Added `onStyleLoaded` callback to `IntaleqMap` to handle style initialization.
+* Added `onStyleLoaded` callback to `SiroMap` to handle style initialization.
 * Improved overlay persistence: Markers, Polylines, Circles, and Polygons are now automatically restored after style changes (e.g., toggling Dark Mode).
 * Exported MapLibre offline management primitives (`OfflineRegion`, `downloadOfflineRegion`, etc.) for advanced usage.
 * Exported `MyLocationRenderMode` and `MyLocationTrackingMode` for location UI customization.
@@ -59,15 +59,15 @@
   API on the widget, identical to `google_maps_flutter`.
 * Added `MarkerId`, `PolylineId`, `CircleId`, `PolygonId` typed ID classes.
 * Added per-object callbacks: `Marker.onTap`, `Marker.onDragEnd`, `Polyline.onTap`, etc.
-* Added `InlqBitmap` (mirrors `BitmapDescriptor`): `defaultMarker`,
+* Added `SiroBitmap` (mirrors `BitmapDescriptor`): `defaultMarker`,
   `defaultMarkerWithHue`, `fromAsset`, `fromBytes`, `fromStyleImage`.
 * Added `InfoWindow` model with `title`, `snippet`, and `onTap`.
-* Added `IntaleqMapType` enum (`normal`, `light`, `satellite`, `none`).
+* Added `SiroMapType` enum (`normal`, `light`, `satellite`, `none`).
 * Added `MinMaxZoomPreference` and `CameraTargetBounds`.
 * Renamed `getRoute()` → `getDirections()` for API clarity.
 * Added `reverseGeocode()` to controller.
 * Added `PolylineUtils.encode()` and `PolylineUtils.totalLength()`.
-* Added `IntaleqColors` Flutter `Color` constants alongside hex strings.
+* Added `SiroColors` Flutter `Color` constants alongside hex strings.
 * Removed `geolocator` and `get`/`latlong2` dependencies (no longer needed).
 
 ## 1.0.0

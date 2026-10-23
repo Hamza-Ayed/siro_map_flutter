@@ -1,15 +1,15 @@
-// وظيفة الملف: تنفيذ أو إعداد intaleq map widget ضمن هذا الجزء من المشروع.
+// وظيفة الملف: تنفيذ أو إعداد siro map widget ضمن هذا الجزء من المشروع.
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:maplibre_gl/maplibre_gl.dart' as mgl;
-import 'intaleq_map_controller.dart';
+import 'siro_map_controller.dart';
 import 'offline_service.dart';
 import 'models/geometry.dart';
 import 'models/types.dart';
 
-/// A widget displaying an Intaleq map.
+/// A widget displaying an Siro map.
 ///
 /// ## Drop-in replacement for `GoogleMap`
 ///
@@ -21,8 +21,8 @@ import 'models/types.dart';
 ///   onMapCreated: (ctrl) => _controller = ctrl,
 /// )
 ///
-/// // After (Intaleq Maps)
-/// IntaleqMap(
+/// // After (Siro Maps)
+/// SiroMap(
 ///   apiKey: 'YOUR_KEY',
 ///   initialCameraPosition: CameraPosition(target: LatLng(33.5, 36.2), zoom: 14),
 ///   markers: _markers,
@@ -33,12 +33,12 @@ import 'models/types.dart';
 /// All overlay collections ([markers], [polylines], [circles], [polygons])
 /// are **declarative**: just call `setState` with a new `Set` and the map
 /// will reconcile additions, updates, and removals automatically.
-class IntaleqMap extends StatefulWidget {
-  const IntaleqMap({
+class SiroMap extends StatefulWidget {
+  const SiroMap({
     super.key,
     required this.apiKey,
     required this.initialCameraPosition,
-    this.mapType = IntaleqMapType.normal,
+    this.mapType = SiroMapType.normal,
     this.styleUrl,
     this.markers = const {},
     this.polylines = const {},
@@ -67,7 +67,7 @@ class IntaleqMap extends StatefulWidget {
 
   // ── Required ───────────────────────────────────────────────
 
-  /// Your Intaleq Maps API key.
+  /// Your Siro Maps API key.
   final String apiKey;
 
   /// Starting camera position (target + zoom).
@@ -76,7 +76,7 @@ class IntaleqMap extends StatefulWidget {
   // ── Map style ──────────────────────────────────────────────
 
   /// Base tile style. Ignored when [styleUrl] is provided.
-  final IntaleqMapType mapType;
+  final SiroMapType mapType;
 
   /// Override with a custom MapLibre style URL.
   final String? styleUrl;
@@ -93,7 +93,7 @@ class IntaleqMap extends StatefulWidget {
 
   // ── Lifecycle callbacks ────────────────────────────────────
 
-  /// Called once the map is ready. Use [IntaleqMapController] for all operations.
+  /// Called once the map is ready. Use [SiroMapController] for all operations.
   final MapCreatedCallback? onMapCreated;
 
   /// Note: If this callback returns a Future, the widget will await it before
@@ -137,11 +137,11 @@ class IntaleqMap extends StatefulWidget {
   final CameraTargetBounds cameraTargetBounds;
 
   @override
-  State<IntaleqMap> createState() => _IntaleqMapState();
+  State<SiroMap> createState() => _SiroMapState();
 }
 
-class _IntaleqMapState extends State<IntaleqMap> {
-  IntaleqMapController? _controller;
+class _SiroMapState extends State<SiroMap> {
+  SiroMapController? _controller;
   bool _isCameraMoving = false;
   String? _styleString;
   bool _isLoadingStyle = true;
@@ -156,7 +156,7 @@ class _IntaleqMapState extends State<IntaleqMap> {
   Future<void> _loadStyle() async {
     try {
       final url = _resolvedStyleUrl;
-      print("🔥 [IntaleqMap] Resolving style: $url");
+      print("🔥 [SiroMap] Resolving style: $url");
 
       if (url.startsWith('{')) {
         _styleString = url;
@@ -171,8 +171,8 @@ class _IntaleqMapState extends State<IntaleqMap> {
             print("🔥 [SiroMap] Style loaded from package asset: packages/siro_map/$assetPath");
           } catch (_) {
             try {
-              _styleString = await rootBundle.loadString('packages/intaleq_maps/$assetPath');
-              print("🔥 [SiroMap] Style loaded from package asset: packages/intaleq_maps/$assetPath");
+              _styleString = await rootBundle.loadString('packages/siro_map/$assetPath');
+              print("🔥 [SiroMap] Style loaded from package asset: packages/siro_map/$assetPath");
             } catch (e) {
               print("❌ [SiroMap] Asset load failed: $e");
               _styleString = url;
@@ -184,34 +184,34 @@ class _IntaleqMapState extends State<IntaleqMap> {
         final file = File(filePath);
         if (await file.exists()) {
           _styleString = await file.readAsString();
-          print("🔥 [IntaleqMap] Style loaded from local file: $filePath");
+          print("🔥 [SiroMap] Style loaded from local file: $filePath");
         } else {
           _styleString = url;
         }
       } else if (url.startsWith('http://') || url.startsWith('https://')) {
         // If satellite theme requested, use bundled ESRI Satellite hybrid style directly
-        if (widget.mapType == IntaleqMapType.satellite || url.contains('theme=satellite')) {
+        if (widget.mapType == SiroMapType.satellite || url.contains('theme=satellite')) {
           try {
-            _styleString = await rootBundle.loadString('packages/intaleq_maps/assets/style-satellite.json');
-            print("🛰️ [IntaleqMap] Loaded bundled ESRI Satellite hybrid style successfully");
+            _styleString = await rootBundle.loadString('packages/siro_map/assets/style-satellite.json');
+            print("🛰️ [SiroMap] Loaded bundled ESRI Satellite hybrid style successfully");
             return;
           } catch (_) {
             try {
               _styleString = await rootBundle.loadString('assets/style-satellite.json');
-              print("🛰️ [IntaleqMap] Loaded local ESRI Satellite hybrid style successfully");
+              print("🛰️ [SiroMap] Loaded local ESRI Satellite hybrid style successfully");
               return;
             } catch (_) {}
           }
         }
-        if (widget.mapType == IntaleqMapType.terrain || url.contains('terrain')) {
+        if (widget.mapType == SiroMapType.terrain || url.contains('terrain')) {
           try {
-            _styleString = await rootBundle.loadString('packages/intaleq_maps/assets/style-3d-terrain.json');
-            print("🏔️ [IntaleqMap] Loaded bundled 3D Terrain style successfully");
+            _styleString = await rootBundle.loadString('packages/siro_map/assets/style-3d-terrain.json');
+            print("🏔️ [SiroMap] Loaded bundled 3D Terrain style successfully");
             return;
           } catch (_) {
             try {
               _styleString = await rootBundle.loadString('assets/style-3d-terrain.json');
-              print("🏔️ [IntaleqMap] Loaded local 3D Terrain style successfully");
+              print("🏔️ [SiroMap] Loaded local 3D Terrain style successfully");
               return;
             } catch (_) {}
           }
@@ -220,20 +220,20 @@ class _IntaleqMapState extends State<IntaleqMap> {
           final res = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 4));
           if (res.statusCode == 200 && res.body.trim().startsWith('{')) {
             _styleString = res.body;
-            print("🔥 [IntaleqMap] Pre-fetched remote style JSON (${res.body.length} bytes)");
+            print("🔥 [SiroMap] Pre-fetched remote style JSON (${res.body.length} bytes)");
           } else {
             _styleString = url;
           }
         } catch (netErr) {
-          print("⚠️ [IntaleqMap] Direct HTTP fetch failed ($netErr), attempting bundled fallback");
+          print("⚠️ [SiroMap] Direct HTTP fetch failed ($netErr), attempting bundled fallback");
           try {
-            final fallback = (widget.mapType == IntaleqMapType.satellite || url.contains('theme=satellite'))
-                ? 'packages/intaleq_maps/assets/style-satellite.json'
-                : (widget.mapType == IntaleqMapType.terrain || url.contains('terrain'))
-                    ? 'packages/intaleq_maps/assets/style-3d-terrain.json'
-                    : 'packages/intaleq_maps/assets/style.json';
+            final fallback = (widget.mapType == SiroMapType.satellite || url.contains('theme=satellite'))
+                ? 'packages/siro_map/assets/style-satellite.json'
+                : (widget.mapType == SiroMapType.terrain || url.contains('terrain'))
+                    ? 'packages/siro_map/assets/style-3d-terrain.json'
+                    : 'packages/siro_map/assets/style.json';
             _styleString = await rootBundle.loadString(fallback);
-            print("🔥 [IntaleqMap] Loaded bundled offline fallback style successfully: $fallback");
+            print("🔥 [SiroMap] Loaded bundled offline fallback style successfully: $fallback");
           } catch (_) {
             _styleString = url;
           }
@@ -242,13 +242,13 @@ class _IntaleqMapState extends State<IntaleqMap> {
         // Fallback: try rootBundle first
         try {
           _styleString = await rootBundle.loadString(url);
-          print("🔥 [IntaleqMap] Style loaded from rootBundle fallback: $url");
+          print("🔥 [SiroMap] Style loaded from rootBundle fallback: $url");
         } catch (_) {
           _styleString = url;
         }
       }
     } catch (e) {
-      print("❌ [IntaleqMap] Failed to load style: $e");
+      print("❌ [SiroMap] Failed to load style: $e");
       _styleString = 'about:blank';
     } finally {
       if (mounted) {
@@ -258,7 +258,7 @@ class _IntaleqMapState extends State<IntaleqMap> {
   }
 
   @override
-  void didUpdateWidget(IntaleqMap oldWidget) {
+  void didUpdateWidget(SiroMap oldWidget) {
     super.didUpdateWidget(oldWidget);
 
     if (oldWidget.mapType != widget.mapType ||
@@ -281,25 +281,25 @@ class _IntaleqMapState extends State<IntaleqMap> {
     if (widget.styleUrl != null) return widget.styleUrl!;
     // Default to local assets for instant loading and 100% offline support (as in Siro Rider)
     return switch (widget.mapType) {
-      IntaleqMapType.normal => 'asset://packages/intaleq_maps/assets/style_dark.json',
-      IntaleqMapType.light => 'asset://packages/intaleq_maps/assets/style.json',
-      IntaleqMapType.satellite => 'asset://packages/intaleq_maps/assets/style-satellite.json',
-      IntaleqMapType.terrain => 'asset://packages/intaleq_maps/assets/style-3d-terrain.json',
-      IntaleqMapType.none => 'about:blank',
+      SiroMapType.normal => 'asset://packages/siro_map/assets/style_dark.json',
+      SiroMapType.light => 'asset://packages/siro_map/assets/style.json',
+      SiroMapType.satellite => 'asset://packages/siro_map/assets/style-satellite.json',
+      SiroMapType.terrain => 'asset://packages/siro_map/assets/style-3d-terrain.json',
+      SiroMapType.none => 'about:blank',
     };
   }
 
   Future<void> _onMapCreated(mgl.MapLibreMapController rawCtrl) async {
-    print("🗺️ [IntaleqMapWidget] _onMapCreated: Native MapLibre controller attached.");
+    print("🗺️ [SiroMapWidget] _onMapCreated: Native MapLibre controller attached.");
     rawCtrl.onSymbolTapped.add(_onSymbolTapped);
     rawCtrl.onLineTapped.add(_onLineTapped);
 
-    final ctrl = await IntaleqMapController.create(
+    final ctrl = await SiroMapController.create(
       raw: rawCtrl,
       apiKey: widget.apiKey,
     );
     _controller = ctrl;
-    print("🗺️ [IntaleqMapWidget] Invoking widget.onMapCreated callback...");
+    print("🗺️ [SiroMapWidget] Invoking widget.onMapCreated callback...");
     widget.onMapCreated?.call(ctrl);
   }
 
@@ -309,22 +309,22 @@ class _IntaleqMapState extends State<IntaleqMap> {
   void _onLineTapped(mgl.Line line) => _controller?.onLineTapped(line);
 
   Future<void> _onStyleLoaded() async {
-    print("🎨 [IntaleqMapWidget] _onStyleLoaded: MapLibre native style finished loading.");
+    print("🎨 [SiroMapWidget] _onStyleLoaded: MapLibre native style finished loading.");
     _isNativeStyleLoaded = true;
     final ctrl = _controller;
     if (ctrl == null) {
-      print("⚠️ [IntaleqMapWidget] _onStyleLoaded: _controller is null!");
+      print("⚠️ [SiroMapWidget] _onStyleLoaded: _controller is null!");
       return;
     }
 
     await ctrl.onStyleLoaded();
-    print("🎨 [IntaleqMapWidget] Invoking widget.onStyleLoaded callback...");
+    print("🎨 [SiroMapWidget] Invoking widget.onStyleLoaded callback...");
     final callbackResult = widget.onStyleLoaded?.call();
     if (callbackResult is Future) {
       await callbackResult;
     }
 
-    print("📌 [IntaleqMapWidget] Re-rendering overlays: markers=${widget.markers.length}, polylines=${widget.polylines.length}, circles=${widget.circles.length}, polygons=${widget.polygons.length}");
+    print("📌 [SiroMapWidget] Re-rendering overlays: markers=${widget.markers.length}, polylines=${widget.polylines.length}, circles=${widget.circles.length}, polygons=${widget.polygons.length}");
     for (final m in widget.markers) await ctrl.addMarker(m);
     for (final p in widget.polylines) await ctrl.addPolyline(p);
     for (final c in widget.circles) await ctrl.addCircle(c);
@@ -335,7 +335,7 @@ class _IntaleqMapState extends State<IntaleqMap> {
 
     // Safely refresh to enable native location layer after style is ready on iOS
     if (widget.myLocationEnabled && mounted) {
-      print("📍 [IntaleqMapWidget] Enabling native location layer after style is loaded.");
+      print("📍 [SiroMapWidget] Enabling native location layer after style is loaded.");
       setState(() {});
     }
   }
@@ -366,7 +366,7 @@ class _IntaleqMapState extends State<IntaleqMap> {
         if (widget.autoCache && isRemote) {
           final pos = _controller?.cameraPosition;
           if (pos != null) {
-            IntaleqOfflineService.instance.downloadRegion(
+            SiroOfflineService.instance.downloadRegion(
               pos.target,
               styleUrl: url,
             );
@@ -408,10 +408,7 @@ class _IntaleqMapState extends State<IntaleqMap> {
   }
 }
 
-/// Primary brand widget for Siro Maps SDK.
-typedef SiroMap = IntaleqMap;
-
 /// Backward compatibility alias for developers migrating from `google_maps_flutter`.
-typedef GoogleMap = IntaleqMap;
+typedef GoogleMap = SiroMap;
 
 

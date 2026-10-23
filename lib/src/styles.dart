@@ -1,9 +1,9 @@
 // وظيفة الملف: تنفيذ أو إعداد styles ضمن هذا الجزء من المشروع.
-/// Predefined Intaleq Map tile style URLs.
-class IntaleqStyles {
-  IntaleqStyles._();
+/// Predefined Siro Map tile style URLs.
+class SiroStyles {
+  SiroStyles._();
 
-  /// Dark premium Obsidian style — the Intaleq default.
+  /// Dark premium Obsidian style — the Siro default.
   ///
   /// This style is optimized for readability and a premium look.
   static String obsidian(String apiKey) =>
@@ -17,7 +17,7 @@ class IntaleqStyles {
 
   /// Satellite imagery with road labels.
   ///
-  /// High-resolution satellite tiles overlaid with Intaleq vector labels.
+  /// High-resolution satellite tiles overlaid with Siro vector labels.
   static String satellite(String apiKey) =>
       'https://map-saas.intaleqapp.com/api/maps/style.json?theme=satellite&api_key=$apiKey';
 
