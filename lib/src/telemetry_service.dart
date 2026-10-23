@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// نقطة تتبع جغرافي مفردة تم التقاطها أثناء حركة المركبة.
 class TelemetryPoint {
@@ -113,6 +114,19 @@ class SiroTelemetryService {
     }
   }
 
+  static const String _installIdPrefKey = 'siro_telemetry_install_id';
+
+  /// يرجع معرّف التثبيت المحفوظ، أو يولّد واحداً عند أول تشغيل.
+  /// يُحفظ في SharedPreferences، فيتغيّر عند إعادة التثبيت ولا يعتمد على أي بيانات عن الجهاز.
+  static Future<String> loadOrCreateInstallId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_installIdPrefKey);
+    if (saved != null && saved.isNotEmpty) return saved;
+    final id = generateInstallId();
+    await prefs.setString(_installIdPrefKey, id);
+    return id;
+  }
+
   /// يولّد معرّف تثبيت عشوائياً بصيغة UUID v4. يُحفظ في التطبيق المضيف،
   /// ويتغير عند إعادة التثبيت، ولا يُشتق من أي بيانات عن الجهاز أو المستخدم.
   static String generateInstallId() {
@@ -217,7 +231,7 @@ class SiroTelemetryService {
   bool recordHeartbeat({DateTime? now}) {
     final last = _lastObservedPoint;
     final lastRecorded = _lastRecordedPoint;
-    if (!_enabled || last == null || lastRecorded == null || !_isStationary) {
+    if (!_enabled || last == null || lastRecorded == null || !_isStationaryAt(last)) {
       return false;
     }
 

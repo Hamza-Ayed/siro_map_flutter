@@ -1,5 +1,7 @@
 ## Unreleased
 
+* `SiroTelemetryService.loadOrCreateInstallId()` stores the random install ID in SharedPreferences.
+  The package now depends on `shared_preferences`.
 * **Breaking:** `SiroTelemetryService.initialize` takes a required `installId` instead of `driverId`.
   Use `SiroTelemetryService.generateInstallId()` once per install and store it in the host app.
 * **Breaking:** `initialize` requires `consentGranted`. The host app passes `true` only after it has

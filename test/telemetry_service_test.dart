@@ -1,5 +1,6 @@
 // وظيفة الملف: اختبارات محرك التتبع، تغطي نبضة الوقوف وفلتر السكون وتغيّر حالة الوقوف وبوابة الموافقة والمعرّف.
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:siro_map/src/telemetry_service.dart';
 
 void main() {
@@ -150,5 +151,14 @@ void main() {
     expect(first, matches(pattern));
     expect(second, matches(pattern));
     expect(first, isNot(second));
+  });
+
+  test('loadOrCreateInstallId keeps the same id until storage is cleared', () async {
+    SharedPreferences.setMockInitialValues({});
+    final first = await SiroTelemetryService.loadOrCreateInstallId();
+    expect(await SiroTelemetryService.loadOrCreateInstallId(), first);
+
+    SharedPreferences.setMockInitialValues({});
+    expect(await SiroTelemetryService.loadOrCreateInstallId(), isNot(first));
   });
 }
