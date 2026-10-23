@@ -1,3 +1,15 @@
+## Unreleased
+
+* **Breaking:** `SiroTelemetryService.initialize` takes a required `installId` instead of `driverId`.
+  Use `SiroTelemetryService.generateInstallId()` once per install and store it in the host app.
+* **Breaking:** `initialize` requires `consentGranted`. The host app passes `true` only after it has
+  shown its disclosure and recorded the user's consent. `setEnabled(false)` stops collection later and
+  drops unsent points.
+* Telemetry: a stationary device now records a heartbeat every 30 seconds from an internal
+  timer, so the heartbeat no longer depends on new GPS events arriving.
+* Telemetry: `SiroTelemetryService.isStationary` and `stationaryChanges` report the stationary
+  state, so the host app can lower its GPS rate while the vehicle is stopped. No new dependencies.
+
 ## 2.3.0
 
 * Refreshed bundled `assets/style.json` (offline fallback) to match the live server style:

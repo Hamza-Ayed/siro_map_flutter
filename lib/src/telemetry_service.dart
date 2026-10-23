@@ -53,45 +53,90 @@ class TelemetryPoint {
 }
 
 /// محرك تتبع المواقع فائق الخفة والرفع الدوري المجمّع (Bulk Batching).
-/// 1. أخذ عينة كل 3 ثوانٍ مع فلتر وقوف ذكي لحماية البطارية.
+/// 1. أخذ عينة كل 3 ثوانٍ عند الحركة، ونبضة ثابتة كل 30 ثانية عند الوقوف.
 /// 2. تجميع النقاط في دفعة وترحيلها كل دقيقتين (120 ثانية) أو عند بلوغ 40 نقطة.
 /// 3. حفظ احتياطي في الذاكرة حتى 400 نقطة عند انقطاع الشبكة.
+/// 4. عند الوقوف يُخبر التطبيق عبر [stationaryChanges] ليخفّض دقة GPS ويوفّر البطارية.
+///    الحزمة لا تملك مصدر GPS؛ التطبيق المضيف يغذّيها بالمواقع عبر [recordPosition].
 class SiroTelemetryService {
   SiroTelemetryService._();
   static final SiroTelemetryService instance = SiroTelemetryService._();
 
   static const int samplingIntervalSeconds = 3;
+  static const int heartbeatIntervalSeconds = 30; // نبضة ثابتة عند الوقوف
   static const int defaultUploadIntervalSeconds = 120; // دقيقتان
   static const int maxBatchSize = 40; // 40 نقطة * 3 ثوانٍ = 120 ثانية
   static const int maxBufferSize = 400; // سعة تخزين مؤقتة دون اتصال (~20 دقيقة)
+  static const double stationarySpeedKmH = 1.0;
+  static const double stationaryDistanceMeters = 3.0;
 
   String _apiKey = '';
   String _baseUrl = 'https://map-saas.intaleqapp.com';
-  String _driverId = 'anonymous_driver';
+  String _installId = '';
+  bool _enabled = false;
 
   final List<TelemetryPoint> _buffer = [];
   DateTime? _lastSampleTime;
   DateTime? _lastFlushTime;
   TelemetryPoint? _lastRecordedPoint;
+  TelemetryPoint? _lastObservedPoint;
   Timer? _periodicFlushTimer;
+  Timer? _heartbeatTimer;
   bool _isFlushing = false;
+  bool _isStationary = false;
+  final StreamController<bool> _stationaryController = StreamController<bool>.broadcast();
 
   int get bufferedPointCount => _buffer.length;
   List<TelemetryPoint> get bufferedPoints => List.unmodifiable(_buffer);
   DateTime? get lastFlushTime => _lastFlushTime;
 
-  /// تهيئة خدمة التتبع وضبط مفتاح الوصول ومؤقت الإرسال الدوري
+  /// هل الجهاز واقف حالياً حسب آخر قراءة GPS.
+  bool get isStationary => _isStationary;
+
+  /// يصدر قيمة جديدة فقط عند تغيّر حالة الوقوف (true = واقف، false = متحرك).
+  Stream<bool> get stationaryChanges => _stationaryController.stream;
+
+  /// هل التطبيق المضيف فعّل جمع التتبع (بعد موافقة المستخدم). الافتراضي: متوقف.
+  bool get isEnabled => _enabled;
+
+  /// تفعيل أو إيقاف جمع التتبع. التطبيق المضيف هو المسؤول عن عرض الإفصاح
+  /// وأخذ الموافقة قبل استدعاء `setEnabled(true)`.
+  /// عند الإيقاف تُحذف النقاط غير المرسلة ولا يُسجَّل شيء بعدها.
+  void setEnabled(bool enabled) {
+    _enabled = enabled;
+    if (!enabled) {
+      _buffer.clear();
+      _lastSampleTime = null;
+      _lastRecordedPoint = null;
+      _lastObservedPoint = null;
+      _setStationary(false);
+    }
+  }
+
+  /// يولّد معرّف تثبيت عشوائياً بصيغة UUID v4. يُحفظ في التطبيق المضيف،
+  /// ويتغير عند إعادة التثبيت، ولا يُشتق من أي بيانات عن الجهاز أو المستخدم.
+  static String generateInstallId() {
+    final random = math.Random.secure();
+    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40; // الإصدار 4
+    bytes[8] = (bytes[8] & 0x3f) | 0x80; // المتغير RFC 4122
+    final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-'
+        '${hex.substring(16, 20)}-${hex.substring(20)}';
+  }
+
+  /// تهيئة خدمة التتبع وضبط مفتاح الوصول ومعرّف التثبيت ومؤقتات الإرسال والنبضة
   void initialize({
     required String apiKey,
+    required String installId,
+    required bool consentGranted,
     String baseUrl = 'https://map-saas.intaleqapp.com',
-    String? driverId,
     int uploadIntervalSeconds = defaultUploadIntervalSeconds,
   }) {
     _apiKey = apiKey;
     _baseUrl = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
-    if (driverId != null && driverId.isNotEmpty) {
-      _driverId = driverId;
-    }
+    _installId = installId;
+    setEnabled(consentGranted);
 
     _periodicFlushTimer?.cancel();
     _lastFlushTime = DateTime.now();
@@ -99,12 +144,20 @@ class SiroTelemetryService {
       Duration(seconds: uploadIntervalSeconds),
       (_) => flush(),
     );
+
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = Timer.periodic(
+      const Duration(seconds: heartbeatIntervalSeconds),
+      (_) => recordHeartbeat(),
+    );
   }
 
   /// إيقاف المؤقتات وتفريغ ما تبقى من نقاط إلى الخادم
   Future<void> dispose() async {
     _periodicFlushTimer?.cancel();
     _periodicFlushTimer = null;
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
     await flush();
   }
 
@@ -119,39 +172,12 @@ class SiroTelemetryService {
     String? customDriverId,
     DateTime? now,
   }) {
+    if (!_enabled) return false;
+
     final currentTime = now ?? DateTime.now();
+    final activeDriverId = customDriverId ?? _installId;
 
-    // 1. فلتر الفاصل الزمني: أخذ عينة كل 3 ثوانٍ على الأقل
-    if (_lastSampleTime != null) {
-      final elapsedSeconds = currentTime.difference(_lastSampleTime!).inSeconds;
-      if (elapsedSeconds < samplingIntervalSeconds) {
-        return false;
-      }
-    }
-
-    // 2. فلتر السكون الذكي (Stationary Filter):
-    // إذا كانت السرعة أقل من 1 كم/ساعة والمسافة أقل من 3 أمتار، نسجل نبضة واحدة كل 30 ثانية فقط
-    if (_lastRecordedPoint != null) {
-      final isNearZeroSpeed = speedKmH < 1.0;
-      final distMeters = _calculateDistanceMeters(
-        _lastRecordedPoint!.latitude,
-        _lastRecordedPoint!.longitude,
-        latitude,
-        longitude,
-      );
-
-      if (isNearZeroSpeed && distMeters < 3.0) {
-        final elapsedSinceLastRecorded =
-            currentTime.difference(_lastRecordedPoint!.timestamp).inSeconds;
-        if (elapsedSinceLastRecorded < 30) {
-          return false;
-        }
-      }
-    }
-
-    final activeDriverId = customDriverId ?? _driverId;
-
-    final point = TelemetryPoint(
+    final observed = TelemetryPoint(
       driverId: activeDriverId,
       latitude: latitude,
       longitude: longitude,
@@ -161,7 +187,84 @@ class SiroTelemetryService {
       distance: remainingDistance,
       timestamp: currentTime,
     );
+    _lastObservedPoint = observed;
 
+    // 1. فلتر الفاصل الزمني: أخذ عينة كل 3 ثوانٍ على الأقل
+    if (_lastSampleTime != null) {
+      final elapsedSeconds = currentTime.difference(_lastSampleTime!).inSeconds;
+      if (elapsedSeconds < samplingIntervalSeconds) {
+        return false;
+      }
+    }
+
+    // 2. فلتر السكون الذكي: عند الوقوف نسجل نبضة واحدة كل 30 ثانية فقط
+    final stationary = _isStationaryAt(observed);
+    _setStationary(stationary);
+    if (stationary) {
+      final elapsedSinceLastRecorded =
+          currentTime.difference(_lastRecordedPoint!.timestamp).inSeconds;
+      if (elapsedSinceLastRecorded < heartbeatIntervalSeconds) {
+        return false;
+      }
+    }
+
+    _appendPoint(observed, currentTime);
+    return true;
+  }
+
+  /// نبضة ثابتة عند الوقوف: تُسجَّل كل 30 ثانية حتى دون وصول تحديث GPS جديد.
+  /// يستدعيها المؤقت تلقائياً بعد [initialize]، ويمكن استدعاؤها يدوياً في الاختبارات.
+  bool recordHeartbeat({DateTime? now}) {
+    final last = _lastObservedPoint;
+    final lastRecorded = _lastRecordedPoint;
+    if (!_enabled || last == null || lastRecorded == null || !_isStationary) {
+      return false;
+    }
+
+    final currentTime = now ?? DateTime.now();
+    final elapsed = currentTime.difference(lastRecorded.timestamp).inSeconds;
+    if (elapsed < heartbeatIntervalSeconds) {
+      return false;
+    }
+
+    final beat = TelemetryPoint(
+      driverId: last.driverId,
+      latitude: last.latitude,
+      longitude: last.longitude,
+      speed: last.speed,
+      heading: last.heading,
+      elevation: last.elevation,
+      distance: last.distance,
+      timestamp: currentTime,
+    );
+    _appendPoint(beat, currentTime);
+    return true;
+  }
+
+  /// هل القراءة الحالية تعني أن الجهاز واقف (سرعة قريبة من الصفر ولم يتحرك أكثر من 3 أمتار)
+  bool _isStationaryAt(TelemetryPoint observed) {
+    final lastRecorded = _lastRecordedPoint;
+    if (lastRecorded == null) return false;
+    if (observed.speed >= stationarySpeedKmH) return false;
+    final distMeters = _calculateDistanceMeters(
+      lastRecorded.latitude,
+      lastRecorded.longitude,
+      observed.latitude,
+      observed.longitude,
+    );
+    return distMeters < stationaryDistanceMeters;
+  }
+
+  void _setStationary(bool stationary) {
+    if (stationary == _isStationary) return;
+    _isStationary = stationary;
+    if (!_stationaryController.isClosed) {
+      _stationaryController.add(stationary);
+    }
+  }
+
+  /// إضافة نقطة إلى الذاكرة المؤقتة وتحديث آخر نقطة مسجلة، ثم ترحيل مبكر عند سقف الدفعة
+  void _appendPoint(TelemetryPoint point, DateTime currentTime) {
     // تفريغ أقدم النقاط إذا امتلأت الذاكرة المؤقتة دون اتصال
     if (_buffer.length >= maxBufferSize) {
       _buffer.removeAt(0);
@@ -171,12 +274,9 @@ class SiroTelemetryService {
     _lastSampleTime = currentTime;
     _lastRecordedPoint = point;
 
-    // 3. ترحيل مبكر إذا وصل عدد النقاط إلى سقف الدفعة (40 نقطة)
     if (_buffer.length >= maxBatchSize) {
       flush();
     }
-
-    return true;
   }
 
   /// رفع الدفعة المجمعة بالكامل إلى مسار /api/telemetry/batch بطلب HTTP واحد
@@ -275,8 +375,12 @@ class SiroTelemetryService {
     _lastSampleTime = null;
     _lastFlushTime = null;
     _lastRecordedPoint = null;
+    _lastObservedPoint = null;
     _periodicFlushTimer?.cancel();
     _periodicFlushTimer = null;
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
     _isFlushing = false;
+    _isStationary = false;
   }
 }
