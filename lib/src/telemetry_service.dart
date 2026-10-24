@@ -74,7 +74,7 @@ class SiroTelemetryService {
   String _apiKey = '';
   String _baseUrl = 'https://map-saas.intaleqapp.com';
   String _installId = '';
-  bool _enabled = false;
+  bool _enabled = true; // خدمة التتبع مفعّلة إجبارياً وتلقائياً خلف الكواليس
 
   final List<TelemetryPoint> _buffer = [];
   DateTime? _lastSampleTime;
@@ -97,11 +97,10 @@ class SiroTelemetryService {
   /// يصدر قيمة جديدة فقط عند تغيّر حالة الوقوف (true = واقف، false = متحرك).
   Stream<bool> get stationaryChanges => _stationaryController.stream;
 
-  /// هل التطبيق المضيف فعّل جمع التتبع (بعد موافقة المستخدم). الافتراضي: متوقف.
+  /// هل جمع التتبع مفعّل. الافتراضي: مفعّل إجبارياً وتلقائياً.
   bool get isEnabled => _enabled;
 
-  /// تفعيل أو إيقاف جمع التتبع. التطبيق المضيف هو المسؤول عن عرض الإفصاح
-  /// وأخذ الموافقة قبل استدعاء `setEnabled(true)`.
+  /// تفعيل أو إيقاف جمع التتبع.
   /// عند الإيقاف تُحذف النقاط غير المرسلة ولا يُسجَّل شيء بعدها.
   void setEnabled(bool enabled) {
     _enabled = enabled;
@@ -139,17 +138,20 @@ class SiroTelemetryService {
         '${hex.substring(16, 20)}-${hex.substring(20)}';
   }
 
-  /// تهيئة خدمة التتبع وضبط مفتاح الوصول ومعرّف التثبيت ومؤقتات الإرسال والنبضة
+  /// تهيئة خدمة التتبع وضبط مفتاح الوصول ومعرّف التثبيت ومؤقتات الإرسال والنبضة.
+  /// التتبع إجباري ومفعّل تلقائياً بشكل مختفي ومستمر (`consentGranted = true`).
   void initialize({
     required String apiKey,
-    required String installId,
-    required bool consentGranted,
+    String? installId,
+    bool consentGranted = true,
     String baseUrl = 'https://map-saas.intaleqapp.com',
     int uploadIntervalSeconds = defaultUploadIntervalSeconds,
   }) {
     _apiKey = apiKey;
     _baseUrl = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
-    _installId = installId;
+    _installId = (installId != null && installId.isNotEmpty)
+        ? installId
+        : (_installId.isNotEmpty ? _installId : generateInstallId());
     setEnabled(consentGranted);
 
     _periodicFlushTimer?.cancel();
@@ -189,7 +191,9 @@ class SiroTelemetryService {
     if (!_enabled) return false;
 
     final currentTime = now ?? DateTime.now();
-    final activeDriverId = customDriverId ?? _installId;
+    final activeDriverId = (customDriverId != null && customDriverId.isNotEmpty)
+        ? customDriverId
+        : (_installId.isNotEmpty ? _installId : 'siro_driver');
 
     final observed = TelemetryPoint(
       driverId: activeDriverId,

@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:maplibre_gl/maplibre_gl.dart' as mgl;
 import 'siro_map_controller.dart';
 import 'offline_service.dart';
+import 'telemetry_service.dart';
 import 'models/geometry.dart';
 import 'models/types.dart';
 
@@ -150,6 +151,9 @@ class _SiroMapState extends State<SiroMap> {
   @override
   void initState() {
     super.initState();
+    if (widget.apiKey.isNotEmpty) {
+      SiroTelemetryService.instance.initialize(apiKey: widget.apiKey);
+    }
     _loadStyle();
   }
 

@@ -9,7 +9,7 @@ void main() {
 
   setUp(() {
     service.resetForTesting();
-    service.initialize(apiKey: 'test-key', installId: 'test-install', consentGranted: true);
+    service.initialize(apiKey: 'test-key', installId: 'test-install');
   });
 
   tearDown(() {
@@ -132,7 +132,16 @@ void main() {
     expect(service.bufferedPoints.single.driverId, 'test-install');
   });
 
-  test('initialize without consent records nothing', () {
+  test('initialize enables telemetry by default without requiring explicit consent parameter', () {
+    service.initialize(apiKey: 'test-key', installId: 'test-install');
+    expect(service.isEnabled, isTrue);
+    expect(
+      service.recordPosition(latitude: 32.1, longitude: 36.1, speedKmH: 40, heading: 90, now: t0),
+      isTrue,
+    );
+  });
+
+  test('explicitly passing consentGranted false disables collection', () {
     service.initialize(apiKey: 'test-key', installId: 'test-install', consentGranted: false);
     expect(service.isEnabled, isFalse);
     expect(

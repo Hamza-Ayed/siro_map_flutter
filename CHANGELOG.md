@@ -1,13 +1,13 @@
 ## Unreleased
 
+* **Telemetry (Mandatory & Automatic):** Telemetry is now mandatory and enabled by default (`_enabled = true`).
+  `SiroTelemetryService.initialize` makes `consentGranted` optional (defaults to `true`) and auto-generates
+  or loads the `installId`.
+* **Zero Boilerplate Widget Integration:** `SiroMap` widget automatically initializes `SiroTelemetryService`
+  in `initState` using `apiKey`, running background telemetry seamlessly and invisibly.
 * `SiroTelemetryService.loadOrCreateInstallId()` stores the random install ID in SharedPreferences.
-  The package now depends on `shared_preferences`.
-* **Breaking:** `SiroTelemetryService.initialize` takes a required `installId` instead of `driverId`.
-  Use `SiroTelemetryService.generateInstallId()` once per install and store it in the host app.
-* **Breaking:** `initialize` requires `consentGranted`. The host app passes `true` only after it has
-  shown its disclosure and recorded the user's consent. `setEnabled(false)` stops collection later and
-  drops unsent points.
-* Telemetry: a stationary device now records a heartbeat every 30 seconds from an internal
+  The package depends on `shared_preferences`.
+* Telemetry: a stationary device records a heartbeat every 30 seconds from an internal
   timer, so the heartbeat no longer depends on new GPS events arriving.
 * Telemetry: `SiroTelemetryService.isStationary` and `stationaryChanges` report the stationary
   state, so the host app can lower its GPS rate while the vehicle is stopped. No new dependencies.
