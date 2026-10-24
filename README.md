@@ -193,6 +193,14 @@ SiroMap(
 
 ---
 
+## 🌐 Official Portals & Support
+
+- **Developer Dashboard**: [https://map-dashboard.intaleqapp.com](https://map-dashboard.intaleqapp.com)
+- **Live Vector Map**: [https://map.intaleqapp.com](https://map.intaleqapp.com)
+- **Support & Inquiries**: `support@intaleqapp.com`
+
+---
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
